@@ -7,10 +7,10 @@ export async function setupAuth(server) {
   server.auth.strategy("jwt", "jwt", {
     keys: process.env.JWT_SECRET,
     verify: {
-      aud: false, // matikan cek audience
-      iss: false, // matikan cek issuer
-      sub: false, // matikan cek subject
-      exp: true, // aktifkan cek expired
+      aud: false, 
+      iss: false, 
+      sub: false, 
+      exp: true, 
     },
     validate: (artifacts, request, h) => {
       return {
@@ -36,7 +36,7 @@ export async function connectDB() {
 export async function uploadImage(filePath) {
   try {
     const result = await cloudinary.uploader.upload(filePath);
-    return result.secure_url; // URL file yang bisa kamu simpan di DB
+    return result.secure_url; 
   } catch (error) {
     console.error('Upload gagal:', error);
     throw error;

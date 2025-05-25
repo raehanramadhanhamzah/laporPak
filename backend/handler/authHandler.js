@@ -1,7 +1,6 @@
 import { User } from "../model/userModel.js";
 import bcrypt from "bcrypt";
 import { CONFIG } from "../config/config.js";
-// import jwt from "jsonwebtoken";
 import jwt from "@hapi/jwt";
 export async function loginHandler(request, h) {
   try {
@@ -35,7 +34,7 @@ export async function loginHandler(request, h) {
           {
             userId: user._id,
             role: user.role,
-            exp: Math.floor(Date.now() / 1000) + parseInt(CONFIG.JWT_EXPIRES_IN, 10), // contoh 1 jam
+            exp: Math.floor(Date.now() / 1000) + parseInt(CONFIG.JWT_EXPIRES_IN, 10), 
           },
           {
             key: CONFIG.JWT_SECRET,

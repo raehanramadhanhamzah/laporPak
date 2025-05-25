@@ -21,12 +21,11 @@ export async function createReportHandler(request, h) {
     }
 
     const report = new Report({
-      reporterId: userId, // harus pakai key 'reporter' sesuai schema
+      reporterId: userId, 
       title,
       description,
-      location: parsedLocation, // pastikan sesuai format schema
-      photoUrl, // URL hasil upload Cloudinary
-      // status otomatis "menunggu"
+      location: parsedLocation, 
+      photoUrl, 
     });
 
     await report.save();

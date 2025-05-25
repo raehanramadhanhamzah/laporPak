@@ -20,6 +20,5 @@ export const PATH = {
   REPORTS: "/api/reports",
 };
 
-// lanjutkan buat upload image ke Cloudinary,kalau berhasil,lanjutkan api laporannya
 
 

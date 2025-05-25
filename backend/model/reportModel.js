@@ -21,7 +21,7 @@ const reportSchema = new mongoose.Schema({
         default: 'Point',
       },
       coordinates: {
-        type: [Number], // [longitude, latitude]
+        type: [Number], 
         required: true,
       },
     },
@@ -50,7 +50,6 @@ const reportSchema = new mongoose.Schema({
   },
 });
 
-// Update `updatedAt` setiap kali disimpan
 reportSchema.pre('save', function (next) {
   this.updatedAt = Date.now();
   next();

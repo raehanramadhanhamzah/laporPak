@@ -4,14 +4,14 @@ const routesReports = [
   {
     method: "POST",
     path: PATH.REPORTS,
-    handler: createReportHandler, // Ganti dengan handler yang sesuai
+    handler: createReportHandler,
     options: {
-      auth: "jwt", //
+      auth: "jwt", 
       payload: {
         output: "file",
         parse: true,
         multipart: true,
-        maxBytes: 10 * 1024 * 1024, // misalnya limit 10 MB
+        maxBytes: 10 * 1024 * 1024, 
       },
     },
   },
