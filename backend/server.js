@@ -1,7 +1,5 @@
 import Hapi from "@hapi/hapi";
-import routesUsers from "./routes/users.js";
-import routesAuth from "./routes/auth.js";
-import routesReports from "./routes/reports.js";
+import routes from "./routes/index.js";
 import { CONFIG } from "./config/config.js";
 import { setupAuth } from "./utils/index.js";
 import { connectDB } from "./utils/index.js";
@@ -18,13 +16,8 @@ const init = async () => {
     },
   });
 
-  const allRoutes = [
-    ...routesUsers,
-    ...routesAuth,
-    ...routesReports,
-  ];
   await setupAuth(server);
-  server.route(allRoutes);
+  server.route(routes);
 
   await server.start();
   console.log("🚀 Server running on", server.info.uri);
