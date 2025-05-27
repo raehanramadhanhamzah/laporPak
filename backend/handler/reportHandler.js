@@ -51,13 +51,13 @@ export async function registerHandler(request, h) {
       });
       return response.code(400);
     }
-    const newUser = new User(request.payload);
+    const newUser = new Report(request.payload);
     const result = await newUser.save();
 
     if (result) {
       const response = h.response({
         status: "success",
-        message: "User berhasil ditambahkan",
+        message: "Report berhasil ditambahkan",
         userId: result._id,
       });
       response.code(201);
@@ -87,4 +87,49 @@ export async function registerHandler(request, h) {
 function isValidPhone(phone) {
   const phoneRegex = /^[0-9+\-\s]+$/;
   return phoneRegex.test(phone);
+}
+
+export async function getAllReportHandler(request, h) {
+try {
+    const { title, page, limit } = request.query;
+
+    let query = {};
+    if (title) {
+      query.title = { $regex: title, $options: 'i' };
+    }
+
+    let reports;
+    let pagination = null;
+
+    if (!page || !limit) {
+      reports = await Report.find(query);
+    } else {
+      const p = parseInt(page);
+      const l = parseInt(limit);
+      const skip = (p - 1) * l;
+
+      reports = await Report.find(query)
+        
+        .skip(skip)
+        .limit(l);
+
+      const totalUsers = await Report.countDocuments(query);
+
+      pagination = {
+        currentPage: p,
+        limit: l,
+        totalUsers,
+        totalPages: Math.ceil(totalUsers / l),
+      };
+    }
+
+    return h.response({
+      status: "success",
+      message: reports.length > 0 ? "Berhasil mendapatkan Laporan" : "Report tidak ditemukan",
+      listUser:reports
+    }).code(200);
+  } catch (error) {
+    console.error("gagal getAllReportsHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
 }
