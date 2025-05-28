@@ -34,7 +34,7 @@ export default function Register({ form, onChange, onSubmit }) {
         <input
           name="password"
           type="password"
-          placeholder="Kata Sandi"
+          placeholder="Password"
           value={form.password}
           onChange={onChange}
           className="w-full p-3 mb-4 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500"

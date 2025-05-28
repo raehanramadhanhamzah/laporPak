@@ -12,8 +12,11 @@ function Navbar() {
   return (
     <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center border-b border-red-100">
       <Link to="/" className="select-none">
-        <div className="text-3xl font-extrabold text-red-600">
-          Lapor<span className="text-neutral-800">Pak</span>
+        <div className="flex items-center gap-2 text-3xl font-extrabold text-red-600">
+          <img src="/src/assets/web-icon.png" alt="Web Icon" className="w-16 h-16" />
+          <span>
+            Lapor<span className="text-neutral-800">Pak</span>
+          </span>
         </div>
       </Link>
 

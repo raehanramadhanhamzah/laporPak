@@ -25,7 +25,7 @@ export default function Login({ form, onChange, onSubmit }) {
         <input
           name="password"
           type="password"
-          placeholder="Kata Sandi"
+          placeholder="Password"
           value={form.password}
           onChange={onChange}
           className="w-full p-3 mb-6 border border-gray-300 rounded focus:outline-none focus:ring-2 focus:ring-red-500"
