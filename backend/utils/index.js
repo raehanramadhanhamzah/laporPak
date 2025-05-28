@@ -1,6 +1,8 @@
 import jwt from "@hapi/jwt";
 import mongoose from 'mongoose';
 import { CONFIG } from "../config/config.js";
+import { v2 as cloudinary } from 'cloudinary';
+
 export async function setupAuth(server) {
   await server.register(jwt);
 
@@ -20,7 +22,6 @@ export async function setupAuth(server) {
     },
   });
 }
-
 
 export async function connectDB() {
   try {

@@ -1,4 +1,4 @@
-import { createReportHandler } from "../handler/reportHandler.js";
+import { createReportHandler,getAllReportHandler } from "../handler/reportHandler.js";
 import { PATH } from "../config/config.js";
 const routesReports = [
   {
@@ -15,5 +15,13 @@ const routesReports = [
       },
     },
   },
+  {
+    method: "GET",
+    path: PATH.REPORTS,
+    handler: getAllReportHandler,
+    options:{
+      auth:"jwt",
+    }
+  }
 ];
 export default routesReports;

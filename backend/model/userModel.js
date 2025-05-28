@@ -4,18 +4,42 @@ const userSchema = new mongoose.Schema({
   name: {
     type: String,
     required: true,
+    validate: {
+      validator: function (v) {
+        return v.trim().length > 0;
+      },
+      message: "Nama tidak boleh kosong"
+    }    
   },
   email: {
     type: String,
     required: true,
     unique: true,
+    validate: {
+      validator: function (v) {
+        return v.trim().length > 0;
+      },
+      message: "Email tidak boleh kosong"
+    }    
   },
   password: {
     type: String,
     required: true,
+    validate: {
+      validator: function (v) {
+        return v.trim().length > 0;
+      },
+      message: "Password tidak boleh kosong"
+    }    
   },
-  phone: String,
-  address: String,
+  phone: {
+    type: String,
+    required: true,
+  },
+  address: {
+    type: String,
+    required: true,
+  },
   role: {
     type: String,
     enum: ['pelapor', 'petugas'], 
