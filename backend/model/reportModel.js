@@ -4,10 +4,22 @@ const reportSchema = new mongoose.Schema({
   title: {
     type: String,
     required: true,
+    validate: {
+      validator: function (v) {
+        return v.trim().length > 0;
+      },
+      message: "Title tidak boleh kosong"
+    }
   },
   description: {
     type: String,
     required: true,
+    validate: {
+      validator: function (v) {
+        return v.trim().length > 0;
+      },
+      message: "Deskripsi tidak boleh kosong"
+    }    
   },
   location: {
     address: {
