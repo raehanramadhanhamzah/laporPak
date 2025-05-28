@@ -1,5 +1,3 @@
-// src/pages/login/LoginPresenter.jsx
-
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
 import { login } from "../../services/api";
@@ -18,15 +16,15 @@ export default function LoginPresenter() {
     e.preventDefault();
     try {
       const res = await login(form);
-      if (res.data.status === "success") {
-        localStorage.setItem("token", res.data.loginResult.token);
+      if (res.status === "success") {
+        localStorage.setItem("token", res.loginResult.token);
         navigate("/");
       } else {
-        alert(res.data.message);
+        alert(res.message);
       }
     } catch (error) {
       console.error(error);
-      alert("Login gagal. Cek email & password.");
+      alert(error.message || "Login gagal. Cek email & password.");
     }
   };
 

@@ -1,23 +1,64 @@
-// src/services/api.js
 import axios from "axios";
 
-const API = axios.create({
+const api = axios.create({
   baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
 });
 
-API.interceptors.request.use((config) => {
+api.interceptors.request.use((config) => {
   const token = localStorage.getItem("token");
   if (token) {
     config.headers.Authorization = `Bearer ${token}`;
   }
   return config;
-});
+}, (error) => Promise.reject(error));
 
-export const register = (data) => API.post("/register", data);
-export const login = (data) => API.post("/login", data);
-// export lain jika diperlukan:
-export const getUsers = (params) => API.get("/users", { params });
-export const getUserDetail = (id) => API.get(`/users/${id}`);
-export const createReport = (formData) => API.post("/reports", formData);
+export const login = async (data) => {
+  try {
+    const response = await api.post("/login", data);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
 
-export default API;
+export const register = async (data) => {
+  try {
+    const response = await api.post("/register", data);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const getUsers = async (params) => {
+  try {
+    const response = await api.get("/users", { params });
+    return response.data; 
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const getUserDetail = async (id) => {
+  try {
+    const response = await api.get(`/users/${id}`);
+    return response.data; 
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const createReport = async (formData) => {
+  try {
+    const response = await api.post("/reports", formData, {
+      headers: {
+        "Content-Type": "multipart/form-data"
+      }
+    });
+    return response.data; 
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export default api;
