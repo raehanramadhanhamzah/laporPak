@@ -12,6 +12,7 @@
   "dependencies": {
     "@tailwindcss/forms": "^0.5.10",
     "@tailwindcss/typography": "^0.5.16",
+    "@tailwindcss/vite": "^4.1.7",
     "axios": "^1.9.0",
     "chart.js": "^4.4.9",
     "framer-motion": "^12.12.2",
@@ -25,6 +26,7 @@
   },
   "devDependencies": {
     "@eslint/js": "^9.25.0",
+    "@tailwindcss/postcss": "^4.1.7",
     "@types/react": "^19.1.2",
     "@types/react-dom": "^19.1.2",
     "@vitejs/plugin-react": "^4.4.1",
@@ -33,7 +35,7 @@
     "eslint-plugin-react-hooks": "^5.2.0",
     "eslint-plugin-react-refresh": "^0.4.19",
     "globals": "^16.0.0",
-    "postcss": "^8.5.3",
+    "postcss": "^8.4.21",
     "tailwindcss": "^4.1.7",
     "vite": "^6.3.5"
   },

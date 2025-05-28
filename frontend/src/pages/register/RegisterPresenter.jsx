@@ -26,19 +26,25 @@ export default function RegisterPresenter() {
     e.preventDefault();
     try {
       const res = await register(form);
-      if (res.data.status === "success") {
-        alert("Registrasi berhasil!");
+
+      if (res.status === "success") {
+        alert(res.message || "Registrasi berhasil!");
         navigate("/login");
       } else {
-        alert(res.data.message);
+        alert(res.message || "Registrasi gagal.");
       }
+
     } catch (error) {
-      console.error(error);
-      alert("Registrasi gagal. Cek console untuk detail.");
+      console.error("Register Error:", error);
+      alert(error.message || "Registrasi gagal. Cek console untuk detail.");
     }
   };
 
   return (
-    <RegisterView form={form} onChange={handleChange} onSubmit={handleSubmit} />
+    <RegisterView
+      form={form}
+      onChange={handleChange}
+      onSubmit={handleSubmit}
+    />
   );
 }
