@@ -1,4 +1,5 @@
 import { Link, useNavigate } from "react-router-dom";
+import { Search, FileText } from "lucide-react";
 
 function Navbar() {
   const isLoggedIn = !!localStorage.getItem("token");
@@ -10,50 +11,77 @@ function Navbar() {
   };
 
   return (
-    <nav className="bg-white shadow-md px-6 py-4 flex justify-between items-center border-b border-red-100">
-      <Link to="/" className="select-none">
-        <div className="flex items-center gap-2 text-3xl font-extrabold text-red-600">
-          <img src="/src/assets/web-icon.png" alt="Web Icon" className="w-16 h-16" />
-          <span>
-            Lapor<span className="text-neutral-800">Pak</span>
-          </span>
-        </div>
-      </Link>
-
-      <div className="flex gap-6 items-center text-base font-medium">
-        {isLoggedIn ? (
-          <>
+    <header className="bg-red-500 text-white">
+      <div className="container mx-auto px-4 py-3 flex items-center justify-between">
+        <div className="flex items-center space-x-8">
+          <Link to="/" className="flex items-center space-x-2 select-none">
+            <div className="bg-white text-red-500 p-2 rounded">
+              <FileText className="w-6 h-6" />
+            </div>
+            <span className="text-xl font-bold">
+              LAPOR<span className="text-red-200">PAK</span>
+            </span>
+          </Link>
+          <nav className="hidden md:flex space-x-6">
             <Link
-              to="/dashboard"
-              className="text-gray-800 hover:text-red-600 transition-colors duration-200"
+              to="/about"
+              className="hover:text-red-200 transition-colors duration-200"
             >
-              Dashboard
+              TENTANG LAPOR
             </Link>
+            <Link
+              to="/statistics"
+              className="hover:text-red-200 transition-colors duration-200"
+            >
+              STATISTIK
+            </Link>
+            {isLoggedIn && (
+              <Link
+                to="/dashboard"
+                className="hover:text-red-200 transition-colors duration-200"
+              >
+                DASHBOARD
+              </Link>
+            )}
+              <Link
+                to="/reports"
+                className="hover:text-red-200 transition-colors duration-200"
+              >
+                LAPOR DAMKAR
+              </Link>
+            
+          </nav>
+        </div>
+
+        <div className="flex items-center space-x-4">
+          <Search className="w-5 h-5 cursor-pointer hover:text-red-200 transition-colors duration-200" />
+
+          {isLoggedIn ? (
             <button
               onClick={handleLogout}
-              className="text-red-600 hover:text-white hover:bg-red-600 border border-red-600 px-3 py-1 rounded transition duration-200 cursor-pointer"
+              className="bg-white text-red-500 px-4 py-2 rounded font-medium hover:bg-red-50 transition duration-200"
             >
-              Logout
+              LOGOUT
             </button>
-          </>
-        ) : (
-          <>
-            <Link
-              to="/login"
-              className="text-gray-800 hover:text-red-600 transition-colors duration-200"
-            >
-              Login
-            </Link>
-            <Link
-              to="/register"
-              className="bg-red-600 text-white px-4 py-2 rounded hover:bg-red-700 transition duration-200"
-            >
-              Register
-            </Link>
-          </>
-        )}
+          ) : (
+            <>
+              <Link
+                to="/login"
+                className="hidden md:inline hover:text-red-200 transition-colors duration-200"
+              >
+                MASUK
+              </Link>
+              <Link
+                to="/register"
+                className="bg-white text-red-500 px-4 py-2 rounded font-medium hover:bg-red-50 transition duration-200"
+              >
+                DAFTAR
+              </Link>
+            </>
+          )}
+        </div>
       </div>
-    </nav>
+    </header>
   );
 }
 
