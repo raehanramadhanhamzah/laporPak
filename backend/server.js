@@ -1,4 +1,5 @@
 import Hapi from "@hapi/hapi";
+import Inert from "@hapi/inert"; 
 import routes from "./routes/index.js";
 import { CONFIG } from "./config/config.js";
 import { setupAuth } from "./utils/index.js";
@@ -17,6 +18,7 @@ const init = async () => {
   });
 
   await setupAuth(server);
+  await server.register(Inert);
   server.route(routes);
 
   await server.start();

@@ -34,10 +34,25 @@ export async function connectDB() {
   }
 }
 
-export async function uploadImage(filePath) {
+export async function uploadFile(fileStream) {
   try {
-    const result = await cloudinary.uploader.upload(filePath);
-    return result.secure_url; 
+    const url = await new Promise((resolve, reject) => {
+      const stream = cloudinary.uploader.upload_stream({
+        resource_type: "auto",
+        folder: "reports"
+      },
+      (error, result) => {
+        if(error){
+          return reject(error);
+        }
+        resolve(result.secure_url);
+      }
+    );
+
+    fileStream.pipe(stream);  
+  }); 
+
+    return url
   } catch (error) {
     console.error('Upload gagal:', error);
     throw error;

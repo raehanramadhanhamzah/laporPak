@@ -8,10 +8,10 @@ const routesReports = [
     options: {
       auth: "jwt", 
       payload: {
-        output: "file",
+        output: "stream",
         parse: true,
         multipart: true,
-        maxBytes: 10 * 1024 * 1024, 
+        maxBytes: 20 * 1024 * 1024, 
       },
     },
   },
