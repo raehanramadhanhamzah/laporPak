@@ -74,10 +74,32 @@ try {
     return h.response({
       status: "success",
       message: reports.length > 0 ? "Berhasil mendapatkan Laporan" : "Report tidak ditemukan",
-      listUser:reports
+      listReport:reports
     }).code(200);
   } catch (error) {
     console.error("gagal getAllReportsHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
+}
+
+export async function getDetailReportHandler(request, h){
+try {
+    const reportId = request.params.id;
+    const report = await Report.findById(reportId);
+    if (!report) {
+      return h.response({
+        status: "fail",
+        message: "Laporan tidak ditemukan",
+      }).code(404);
+    }
+    return h.response({
+      status: "success",
+      message: "Berhasil mendapatkan detail laporan",
+      report,
+    }).code(200);
+  }
+  catch (error) {
+    console.error("gagal getDetailReportHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
 }
