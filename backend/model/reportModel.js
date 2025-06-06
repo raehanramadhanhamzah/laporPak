@@ -40,7 +40,11 @@ const reportSchema = new mongoose.Schema({
   },
   photoUrl: {
     type: String,
-    default: '',
+    default: null,
+  },
+  videoUrl: {
+    type: String,
+    default: null,
   },
   status: {
     type: String,
