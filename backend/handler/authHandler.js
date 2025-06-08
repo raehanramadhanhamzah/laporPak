@@ -34,12 +34,14 @@ export async function loginHandler(request, h) {
           {
             userId: user._id,
             role: user.role,
-            exp: Math.floor(Date.now() / 1000) + parseInt(CONFIG.JWT_EXPIRES_IN, 10), 
+            exp:
+              Math.floor(Date.now() / 1000) +
+              parseInt(CONFIG.JWT_EXPIRES_IN, 10),
           },
           {
             key: CONFIG.JWT_SECRET,
             algorithm: "HS256",
-          },
+          }
         ),
       },
     });
@@ -60,7 +62,17 @@ export async function registerHandler(request, h) {
       });
       return response.code(400);
     }
-    const newUser = new User(request.payload);
+    const { name, email, password, address } = request.payload;
+
+    const newUser = new User({
+      name,
+      email,
+      password,
+      phone,
+      address,
+      role: "pelapor", 
+    });
+
     const result = await newUser.save();
 
     if (result) {

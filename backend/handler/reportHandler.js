@@ -2,7 +2,18 @@ import { Report } from "../model/reportModel.js";
 import { uploadFile } from "../utils/index.js";
 export async function createReportHandler(request, h) {
   try {
-    const { title, description, location } = request.payload;
+    const {
+      reportType, 
+      title,
+      description,
+      location,
+      fireType,
+      hasCasualties,
+      urgencyLevel,
+      rescueType,
+      additionalInfo,
+    } = request.payload;
+
     const image = request.payload.image;
     const video = request.payload.video;
     const userId = request.auth.credentials.userId;
@@ -46,21 +57,41 @@ export async function createReportHandler(request, h) {
       }
     }
 
-    const report = new Report({
-      reporterId: userId,
-      title,
-      description,
-      location: parsedLocation,
-      photoUrl,
-      videoUrl,
-    });
+    let report;
+
+    if (reportType === "quick") {
+      report = new QuickReport({
+        reporterId: userId,
+        title,
+        description,
+        location: parsedLocation,
+        photoUrl,
+        videoUrl,
+        fireType,
+        hasCasualties,
+        urgencyLevel,
+      });
+    } else if (reportType === "standard") {
+      report = new StandardReport({
+        reporterId: userId,
+        title,
+        description,
+        location: parsedLocation,
+        photoUrl,
+        videoUrl,
+        rescueType,
+        additionalInfo,
+      });
+    } else {
+      throw new Error("Invalid reportType");
+    }
 
     await report.save();
 
     return h
       .response({
         message: "Laporan berhasil dibuat",
-        report,
+        report_id: report._id,
       })
       .code(201);
   } catch (error) {

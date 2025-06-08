@@ -1,74 +1,61 @@
-import mongoose from 'mongoose';
+import mongoose from "mongoose";
 
-const reportSchema = new mongoose.Schema({
-  title: {
-    type: String,
-    required: true,
-    validate: {
-      validator: function (v) {
-        return v.trim().length > 0;
-      },
-      message: "Title tidak boleh kosong"
-    }
-  },
-  description: {
-    type: String,
-    required: true,
-    validate: {
-      validator: function (v) {
-        return v.trim().length > 0;
-      },
-      message: "Deskripsi tidak boleh kosong"
-    }    
-  },
-  location: {
-    address: {
+const options = { discriminatorKey: "reportType", timestamps: true };
+
+const reportSchema = new mongoose.Schema(
+  {
+    title: {
       type: String,
       required: true,
-    },
-    coordinates: {
-      type: {
-        type: String,
-        enum: ['Point'],
-        default: 'Point',
+      validate: {
+        validator: (v) => v.trim().length > 0,
+        message: "Title tidak boleh kosong",
       },
+    },
+    description: {
+      type: String,
+      required: true,
+      validate: {
+        validator: (v) => v.trim().length > 0,
+        message: "Deskripsi tidak boleh kosong",
+      },
+    },
+    location: {
+      address: { type: String, required: true },
       coordinates: {
-        type: [Number], 
-        required: true,
+        type: { type: String, enum: ["Point"], default: "Point" },
+        coordinates: { type: [Number], required: true },
       },
     },
+    photoUrl: { type: String, default: null },
+    videoUrl: { type: String, default: null },
+    reporterId: {
+      type: mongoose.Schema.Types.ObjectId,
+      ref: "user",
+      required: true,
+    },
   },
-  photoUrl: {
+  options
+);
+
+const Report = mongoose.model("Report", reportSchema);
+
+const quickReportSchema = new mongoose.Schema({
+  fireType: { type: String, required: true },
+  hasCasualties: { type: Boolean, required: true },
+  urgencyLevel: {
     type: String,
-    default: null,
-  },
-  videoUrl: {
-    type: String,
-    default: null,
-  },
-  status: {
-    type: String,
-    enum: ['menunggu', 'diproses', 'selesai'],
-    default: 'menunggu',
-  },
-  reporterId: {
-    type: mongoose.Schema.Types.ObjectId,
-    ref: 'user',
+    enum: ["rendah", "sedang", "tinggi", "kritis"],
     required: true,
   },
-  createdAt: {
-    type: Date,
-    default: Date.now,
-  },
-  updatedAt: {
-    type: Date,
-    default: Date.now,
-  },
 });
 
-reportSchema.pre('save', function (next) {
-  this.updatedAt = Date.now();
-  next();
+const standardReportSchema = new mongoose.Schema({
+  rescueType: { type: String, required: true },
+  additionalInfo: { type: String, default: null },
 });
 
-export const Report = mongoose.model('report', reportSchema);
+const QuickReport = Report.discriminator("darurat", quickReportSchema);
+const StandardReport = Report.discriminator("biasa", standardReportSchema);
+
+export { Report, QuickReport, StandardReport };
