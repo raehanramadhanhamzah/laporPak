@@ -42,7 +42,7 @@ const userSchema = new mongoose.Schema({
   },
   role: {
     type: String,
-    enum: ['pelapor', 'petugas'], 
+    enum: ['pelapor', 'petugas', 'admin'], 
     default: 'pelapor',
   },
   createdAt: {
