@@ -1,5 +1,6 @@
 import { Report } from "../model/reportModel.js";
 import { uploadFile } from "../utils/index.js";
+import { QuickReport, StandardReport } from "../model/reportModel.js";
 export async function createReportHandler(request, h) {
   try {
     const {
@@ -41,7 +42,6 @@ export async function createReportHandler(request, h) {
         throw new Error("File image tidak valid (hanya jpg, png, webp)");
       }
     }
-
     if (video && video.hapi && video._data.length > 0) {
       const videoType = video.hapi.headers["content-type"];
       const videoExt = video.hapi.filename.split(".").pop().toLowerCase();
