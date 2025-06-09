@@ -1,4 +1,8 @@
-import { createReportHandler, getAllReportHandler, getDetailReportHandler } from "../handler/reportHandler.js";
+import {
+  createReportHandler,
+  getAllReportHandler,
+  getDetailReportHandler,
+} from "../handler/reportHandler.js";
 import { PATH } from "../config/config.js";
 const routesReports = [
   {
@@ -6,12 +10,15 @@ const routesReports = [
     path: PATH.REPORTS,
     handler: createReportHandler,
     options: {
-      auth: "jwt", 
+      auth: {
+        mode: "try", 
+        strategy: "jwt",
+      },
       payload: {
         output: "stream",
         parse: true,
         multipart: true,
-        maxBytes: 20 * 1024 * 1024, 
+        maxBytes: 20 * 1024 * 1024,
       },
     },
   },
@@ -19,17 +26,17 @@ const routesReports = [
     method: "GET",
     path: PATH.REPORTS,
     handler: getAllReportHandler,
-    options:{
-      auth:"jwt",
-    }
+    options: {
+      auth: "jwt",
+    },
   },
   {
     method: "GET",
-    path:   `${PATH.REPORTS}/{id}`,
+    path: `${PATH.REPORTS}/{id}`,
     handler: getDetailReportHandler,
-    options:{
-      auth:"jwt",
-    }
-  }
+    options: {
+      auth: "jwt",
+    },
+  },
 ];
 export default routesReports;
