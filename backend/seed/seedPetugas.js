@@ -9,6 +9,8 @@ export async function seedPetugas() {
         password: "12345678",
         phone: "0811111111",
         address: "Pos Damkar 1, Makassar",
+        kelurahan: "Makassar 1",
+        kecamatan: "Makassar 1",
       },
       {
         name: "Petugas 2",
@@ -16,6 +18,8 @@ export async function seedPetugas() {
         password: "12345678",
         phone: "0822222222",
         address: "Pos Damkar 2, Makassar",
+        kelurahan: "Makassar 1",
+        kecamatan: "Makassar 1",
       },
       {
         name: "Petugas 3",
@@ -23,6 +27,8 @@ export async function seedPetugas() {
         password: "12345678",
         phone: "0833333333",
         address: "Pos Damkar 3, Makassar",
+        kelurahan: "Makassar 1",
+        kecamatan: "Makassar 1",
       },
     ];
 

@@ -26,6 +26,8 @@ export async function seedAdmin() {
       role: "admin",
       phone: "1234567890", 
       address: "Jl. Admin No. 1, Makassar", 
+      kelurahan: "Makassar 1",
+      kecamatan: "Makassar 1",
     });
 
     await adminUser.save();

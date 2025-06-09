@@ -1,6 +1,7 @@
 import { User } from "../model/userModel.js";
 import bcrypt from "bcrypt";
 import { CONFIG } from "../config/config.js";
+import { Report } from "../model/reportModel.js";
 import jwt from "@hapi/jwt";
 export async function loginHandler(request, h) {
   try {
@@ -54,51 +55,92 @@ export async function loginHandler(request, h) {
 }
 export async function registerHandler(request, h) {
   try {
-    const { phone } = request.payload;
-    if (phone && !isValidPhone(phone)) {
-      const response = h.response({
-        status: "fail",
-        message: "Nomor telepon tidak valid",
-      });
-      return response.code(400);
-    }
-    const { name, email, password, address } = request.payload;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      address,
+      rt,
+      rw,
+      kelurahan,
+      kecamatan,
+    } = request.payload;
 
+    if (phone && !isValidPhone(phone)) {
+      return h
+        .response({
+          status: "fail",
+          message: "Nomor telepon tidak valid",
+        })
+        .code(400);
+    }
+
+    const existingEmail = await User.findOne({ email });
+    if (existingEmail) {
+      return h
+        .response({
+          status: "fail",
+          message: "Email sudah digunakan",
+        })
+        .code(409);
+    }
+
+    const existingPhone = await User.findOne({ phone });
+    if (existingPhone) {
+      return h
+        .response({
+          status: "fail",
+          message: "Nomor telepon sudah digunakan",
+        })
+        .code(409);
+    }
+    if(!kelurahan || !kecamatan) {
+      return h
+        .response({
+          status: "fail",
+          message: "Kelurahan, dan Kecamatan wajib diisi.",
+        })
+        .code(400);
+    }
     const newUser = new User({
       name,
       email,
       password,
       phone,
       address,
-      role: "pelapor", 
+      rt,
+      rw,
+      kelurahan,
+      kecamatan,
+      role: "pelapor",
     });
 
     const result = await newUser.save();
 
-    if (result) {
-      const response = h.response({
+    await Report.updateMany(
+      { "reporterInfo.phone": phone, reporterId: { $exists: false } },
+      {
+        $set: { reporterId: result._id },
+        $unset: { reporterInfo: "" },
+      }
+    );
+
+    return h
+      .response({
         status: "success",
         message: "User berhasil ditambahkan",
         userId: result._id,
-      });
-      response.code(201);
-      return response;
-    }
+      })
+      .code(201);
   } catch (error) {
     if (error.name === "ValidationError") {
-      const response = h.response({
-        status: "fail",
-        message: error.message,
-      });
-      return response.code(400);
-    }
-
-    if (error.code === 11000) {
-      const response = h.response({
-        status: "fail",
-        message: "Email sudah digunakan",
-      });
-      return response.code(409);
+      return h
+        .response({
+          status: "fail",
+          message: error.message,
+        })
+        .code(400);
     }
 
     return h.response({ error: error.message }).code(500);

@@ -4,7 +4,7 @@ import { QuickReport, StandardReport } from "../model/reportModel.js";
 export async function createReportHandler(request, h) {
   try {
     const {
-      reportType, 
+      reportType,
       title,
       description,
       location,
@@ -13,11 +13,20 @@ export async function createReportHandler(request, h) {
       urgencyLevel,
       rescueType,
       additionalInfo,
+      name,
+      phone,
+      address,
+      rt,
+      rw,
+      kelurahan,
+      kecamatan,
     } = request.payload;
 
     const image = request.payload.image;
     const video = request.payload.video;
-    const userId = request.auth.credentials.userId;
+    const userId = request.auth.isAuthenticated
+      ? request.auth.credentials.userId
+      : null;
 
     let parsedLocation = location;
     if (typeof location === "string") {
@@ -56,29 +65,54 @@ export async function createReportHandler(request, h) {
         throw new Error("File video tidak valid (hanya mp4, mov, webm)");
       }
     }
+    const baseReportData = {
+      reporterId: userId || undefined,
+      title,
+      description,
+      location: parsedLocation,
+      photoUrl,
+      videoUrl,
+      reporterInfo: undefined,
+    };
+
+    if (!userId) {
+      if (
+        !name ||
+        !phone ||
+        !address ||
+        !kelurahan ||
+        !kecamatan
+      ) {
+        return h
+          .response({
+            status: "fail",
+            message: "Selain RT dan RW, semua field wajib diisi.",
+          })
+          .code(400);
+      }
+      baseReportData.reporterInfo = {
+        name,
+        phone,
+        address,
+        rt,
+        rw,
+        kelurahan,
+        kecamatan,
+      };
+    }
 
     let report;
 
     if (reportType === "quick") {
       report = new QuickReport({
-        reporterId: userId,
-        title,
-        description,
-        location: parsedLocation,
-        photoUrl,
-        videoUrl,
+        ...baseReportData,
         fireType,
         hasCasualties,
         urgencyLevel,
       });
     } else if (reportType === "standard") {
       report = new StandardReport({
-        reporterId: userId,
-        title,
-        description,
-        location: parsedLocation,
-        photoUrl,
-        videoUrl,
+        ...baseReportData,
         rescueType,
         additionalInfo,
       });

@@ -27,12 +27,31 @@ const reportSchema = new mongoose.Schema(
         coordinates: { type: [Number], required: true },
       },
     },
-    photoUrl: { type: String, default: null },
-    videoUrl: { type: String, default: null },
+    photoUrl: {
+      type: String,
+      default: null,
+    },
+    videoUrl: {
+      type: String,
+      default: null,
+    },
     reporterId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
-      required: true,
+      required: false,
+    },
+    reporterInfo: {
+      name: { type: String },
+      phone: { type: String },
+      address: { type: String },
+      rt: { type: String },
+      rw: { type: String },
+      kelurahan: { type: String },
+      kecamatan: { type: String },
+    },
+    createdAt: {
+      type: Date,
+      default: Date.now,
     },
   },
   options
