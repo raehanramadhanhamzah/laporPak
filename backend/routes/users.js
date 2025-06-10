@@ -1,12 +1,18 @@
-import { getAllUsersHandler, getDetailUsersHandler } from "../handler/usersHandler.js";
+import {
+  getAllUsersHandler,
+  getDetailUsersHandler,
+  updatedUserByIdHandler,
+} from "../handler/usersHandler.js";
 import { PATH } from "../config/config.js";
+import { onlyAdminOrPetugas } from "../utils/index.js";
 const routesUsers = [
   {
     method: "GET",
     path: PATH.USERS,
     handler: getAllUsersHandler,
     options: {
-      auth: 'jwt'  
+      auth: "jwt",
+      pre: [{ method: onlyAdminOrPetugas }],
     },
   },
   {
@@ -14,7 +20,15 @@ const routesUsers = [
     path: `${PATH.USERS}/{id}`,
     handler: getDetailUsersHandler,
     options: {
-      auth: 'jwt'  
+      auth: "jwt",
+    },
+  },
+  {
+    method: "PUT",
+    path: `${PATH.USERS}/{id}`,
+    handler: updatedUserByIdHandler,
+    options: {
+      auth: "jwt",
     },
   },
 ];

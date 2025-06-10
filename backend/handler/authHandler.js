@@ -31,6 +31,7 @@ export async function loginHandler(request, h) {
       loginResult: {
         userId: user._id,
         name: user.name,
+        role: user.role,
         token: jwt.token.generate(
           {
             userId: user._id,

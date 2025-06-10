@@ -1,28 +1,26 @@
 import { User } from "../model/userModel.js";
-
+import { Report } from "../model/reportModel.js";
+import bcrypt from "bcrypt";
 export async function getAllUsersHandler(request, h) {
   try {
     const { name, page, limit } = request.query;
 
     let query = {};
     if (name) {
-      query.name = { $regex: name, $options: 'i' };
+      query.name = { $regex: name, $options: "i" };
     }
 
     let users;
     let pagination = null;
 
     if (!page || !limit) {
-      users = await User.find(query).select('-password');
+      users = await User.find(query).select("-password");
     } else {
       const p = parseInt(page);
       const l = parseInt(limit);
       const skip = (p - 1) * l;
 
-      users = await User.find(query)
-        .select('-password')
-        .skip(skip)
-        .limit(l);
+      users = await User.find(query).select("-password").skip(skip).limit(l);
 
       const totalUsers = await User.countDocuments(query);
 
@@ -34,11 +32,16 @@ export async function getAllUsersHandler(request, h) {
       };
     }
 
-    return h.response({
-      status: "success",
-      message: users.length > 0 ? "Berhasil mendapatkan user" : "User tidak ditemukan",
-      listUser:users
-    }).code(200);
+    return h
+      .response({
+        status: "success",
+        message:
+          users.length > 0
+            ? "Berhasil mendapatkan user"
+            : "User tidak ditemukan",
+        listUser: users,
+      })
+      .code(200);
   } catch (error) {
     console.error("gagal getAllUsersHandler:", error);
     return h.response({ error: error.message }).code(500);
@@ -48,23 +51,123 @@ export async function getAllUsersHandler(request, h) {
 export async function getDetailUsersHandler(request, h) {
   try {
     const userId = request.params.id;
-    const user = await User.findById(userId).select('-password');
+    const user = await User.findById(userId).select("-password");
     if (!user) {
-      return h.response({
-        status: "fail",
-        message: "User tidak ditemukan",
-      }).code(404);
+      return h
+        .response({
+          status: "fail",
+          message: "User tidak ditemukan",
+        })
+        .code(404);
     }
-    return h.response({
-      status: "success",
-      message: "Berhasil mendapatkan detail user",
-      user,
-    }).code(200);
-  }
-  catch (error) {
+    return h
+      .response({
+        status: "success",
+        message: "Berhasil mendapatkan detail user",
+        user,
+      })
+      .code(200);
+  } catch (error) {
     console.error("gagal getDetailUsersHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
 }
 
+export async function updatedUserByIdHandler(request, h) {
+  try {
+    const userId = request.params.id;
+    const {
+      name,
+      email,
+      password,
+      phone,
+      address,
+      rt,
+      rw,
+      kelurahan,
+      kecamatan,
+    } = request.payload;
 
+    if (email) {
+      const existingEmail = await User.findOne({ email, _id: { $ne: userId } });
+      if (existingEmail) {
+        return h
+          .response({
+            status: "fail",
+            message: "Email sudah digunakan oleh user lain",
+          })
+          .code(409);
+      }
+    }
+
+    if (phone !== undefined) {
+      if (!phone) {
+        return h
+          .response({
+            status: "fail",
+            message: "Nomor telepon wajib diisi",
+          })
+          .code(400);
+      }
+
+      const phoneOwner = await User.findOne({ phone, _id: { $ne: userId } });
+      if (phoneOwner) {
+        return h
+          .response({
+            status: "fail",
+            message: "Nomor telepon sudah digunakan oleh user lain",
+          })
+          .code(409);
+      }
+
+      const reportWithPhone = await Report.findOne({
+        "reporterInfo.phone": phone,
+        reporterId: { $exists: false },
+      });
+      if (reportWithPhone) {
+        return h
+          .response({
+            status: "fail",
+            message:
+              "Nomor telepon sudah digunakan pada laporan yang belum terdaftar ke user",
+          })
+          .code(409);
+      }
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return h
+        .response({
+          status: "fail",
+          message: "User tidak ditemukan",
+        })
+        .code(404);
+    }
+    if (password) {
+      user.password = await bcrypt.hash(password, 10);
+    }
+    user.name = name || user.name;
+    user.email = email || user.email;
+    user.phone = phone || user.phone;
+    user.address = address || user.address;
+    user.rt = rt || user.rt;
+    user.rw = rw || user.rw;
+    user.kelurahan = kelurahan || user.kelurahan;
+    user.kecamatan = kecamatan || user.kecamatan;
+    user.updatedAt = new Date();
+
+    await user.save();
+
+    return h
+      .response({
+        status: "success",
+        message: "Berhasil memperbarui data user",
+        updatedUser: user,
+      })
+      .code(200);
+  } catch (error) {
+    console.error("gagal updatedUserByIdHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
+}
