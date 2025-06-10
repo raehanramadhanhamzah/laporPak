@@ -73,13 +73,12 @@ export async function getDetailUsersHandler(request, h) {
   }
 }
 
-export async function updatedUserByIdHandler(request, h) {
+export async function updateProfileByIdHandler(request, h) {
   try {
     const userId = request.params.id;
     const {
       name,
       email,
-      password,
       phone,
       address,
       rt,
@@ -144,12 +143,8 @@ export async function updatedUserByIdHandler(request, h) {
         })
         .code(404);
     }
-    if (password) {
-      user.password = await bcrypt.hash(password, 10);
-    }
     user.name = name || user.name;
-    user.email = email || user.email;
-    user.phone = phone || user.phone;
+    user.email = email || user.email;    user.phone = phone || user.phone;
     user.address = address || user.address;
     user.rt = rt || user.rt;
     user.rw = rw || user.rw;
@@ -167,7 +162,100 @@ export async function updatedUserByIdHandler(request, h) {
       })
       .code(200);
   } catch (error) {
-    console.error("gagal updatedUserByIdHandler:", error);
+    console.error("gagal updateUserByIdHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
 }
+
+export async function deleteUserByIdHandler(request, h) {
+  try {
+    const userId = request.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return h
+        .response({
+          status: "fail",
+          message: "User tidak ditemukan",
+        })
+        .code(404);
+    }
+    const reportWithUser = await Report.findOne({ reporterId: userId });
+    if (reportWithUser) {
+      return h
+        .response({
+          status: "fail",
+          message:
+            "Tidak dapat menghapus user yang memiliki laporan terdaftar",
+        })
+        .code(400);
+    }
+    await User.deleteOne({ _id: userId });
+    return h
+      .response({
+        status: "success",
+        message: "Berhasil menghapus user",
+      })
+      .code(200);
+  }
+  catch (error) {
+    console.error("gagal deleteUserByIdHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
+}
+export async function updatePasswordByIdHandler(request, h) {
+  try {
+    const userId = request.params.id;
+    const { oldPassword, newPassword, confirmPassword} = request.payload;
+
+    if (!oldPassword || !newPassword) {
+      return h
+        .response({
+          status: "fail",
+          message: "Password lama dan password baru wajib diisi",
+        })
+        .code(400);
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return h
+        .response({
+          status: "fail",
+          message: "User tidak ditemukan",
+        })
+        .code(404);
+    }
+
+    const isMatch = await bcrypt.compare(oldPassword, user.password);
+    if (!isMatch) {
+      return h
+        .response({
+          status: "fail",
+          message: "Password lama tidak cocok",
+        })
+        .code(401);
+    }
+    const isconfirmed = newPassword === confirmPassword;
+    if (!isconfirmed) {
+      return h
+        .response({
+          status: "fail",
+          message: "Konfirmasi password tidak cocok",
+        })
+        .code(400);
+    }
+    user.password = newPassword;
+    user.updatedAt = new Date();
+    await user.save();
+
+    return h
+      .response({
+        status: "success",
+        message: "Berhasil memperbarui password user",
+      })
+      .code(200);
+  } catch (error) {
+    console.error("gagal updatePasswordByIdHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
+} 
