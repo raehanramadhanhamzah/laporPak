@@ -1,7 +1,7 @@
 import axios from "axios";
 
 const api = axios.create({
-  baseURL: import.meta.env.VITE_API_URL || "http://localhost:3000/api",
+  baseURL: import.meta.env.VITE_API_URL || "https://laporpak-production.up.railway.app/api",
 });
 
 api.interceptors.request.use((config) => {
@@ -56,6 +56,42 @@ export const createReport = async (formData) => {
       }
     });
     return response.data; 
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const getAllReports = async (params = {}) => {
+  try {
+    const response = await api.get("/reports", { params });
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const getReportDetail = async (id) => {
+  try {
+    const response = await api.get(`/reports/${id}`);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const updateProfile = async (id, data) => {
+  try {
+    const response = await api.put(`/users/${id}/update-profile`, data);
+    return response.data;
+  } catch (error) {
+    throw error.response?.data || error;
+  }
+};
+
+export const changePassword = async (id, data) => {
+  try {
+    const response = await api.put(`/users/${id}/update-password`, data);
+    return response.data;
   } catch (error) {
     throw error.response?.data || error;
   }
