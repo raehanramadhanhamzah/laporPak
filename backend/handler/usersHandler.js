@@ -167,41 +167,6 @@ export async function updateProfileByIdHandler(request, h) {
   }
 }
 
-export async function deleteUserByIdHandler(request, h) {
-  try {
-    const userId = request.params.id;
-    const user = await User.findById(userId);
-    if (!user) {
-      return h
-        .response({
-          status: "fail",
-          message: "User tidak ditemukan",
-        })
-        .code(404);
-    }
-    const reportWithUser = await Report.findOne({ reporterId: userId });
-    if (reportWithUser) {
-      return h
-        .response({
-          status: "fail",
-          message:
-            "Tidak dapat menghapus user yang memiliki laporan terdaftar",
-        })
-        .code(400);
-    }
-    await User.deleteOne({ _id: userId });
-    return h
-      .response({
-        status: "success",
-        message: "Berhasil menghapus user",
-      })
-      .code(200);
-  }
-  catch (error) {
-    console.error("gagal deleteUserByIdHandler:", error);
-    return h.response({ error: error.message }).code(500);
-  }
-}
 export async function updatePasswordByIdHandler(request, h) {
   try {
     const userId = request.params.id;
@@ -259,3 +224,39 @@ export async function updatePasswordByIdHandler(request, h) {
     return h.response({ error: error.message }).code(500);
   }
 } 
+
+export async function deleteUserByIdHandler(request, h) {
+  try {
+    const userId = request.params.id;
+    const user = await User.findById(userId);
+    if (!user) {
+      return h
+        .response({
+          status: "fail",
+          message: "User tidak ditemukan",
+        })
+        .code(404);
+    }
+    const reportWithUser = await Report.findOne({ reporterId: userId });
+    if (reportWithUser) {
+      return h
+        .response({
+          status: "fail",
+          message:
+            "Tidak dapat menghapus user yang memiliki laporan terdaftar",
+        })
+        .code(400);
+    }
+    await User.deleteOne({ _id: userId });
+    return h
+      .response({
+        status: "success",
+        message: "Berhasil menghapus user",
+      })
+      .code(200);
+  }
+  catch (error) {
+    console.error("gagal deleteUserByIdHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
+}

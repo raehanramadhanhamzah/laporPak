@@ -76,13 +76,7 @@ export async function createReportHandler(request, h) {
     };
 
     if (!userId) {
-      if (
-        !name ||
-        !phone ||
-        !address ||
-        !kelurahan ||
-        !kecamatan
-      ) {
+      if (!name || !phone || !address || !kelurahan || !kecamatan) {
         return h
           .response({
             status: "fail",
@@ -103,14 +97,14 @@ export async function createReportHandler(request, h) {
 
     let report;
 
-    if (reportType === "quick") {
+    if (reportType === "darurat") {
       report = new QuickReport({
         ...baseReportData,
         fireType,
         hasCasualties,
         urgencyLevel,
       });
-    } else if (reportType === "standard") {
+    } else if (reportType === "biasa") {
       report = new StandardReport({
         ...baseReportData,
         rescueType,
@@ -124,13 +118,17 @@ export async function createReportHandler(request, h) {
 
     return h
       .response({
+        status: "success",
         message: "Laporan berhasil dibuat",
         report_id: report._id,
       })
       .code(201);
   } catch (error) {
     console.error("gagal createReportHandler:", error);
-    return h.response({ error: error.message }).code(500);
+    return h.response({
+      status: "fail",
+      message: error.message || "Gagal membuat laporan",
+    }).code(500);
   }
 }
 
@@ -173,7 +171,7 @@ export async function getAllReportHandler(request, h) {
         status: "success",
         message:
           reports.length > 0
-            ? "Berhasil mendapatkan Laporan"
+            ? "Berhasil mendapatkan semua laporan"
             : "Report tidak ditemukan",
         listReport: reports,
       })
@@ -205,6 +203,80 @@ export async function getDetailReportHandler(request, h) {
       .code(200);
   } catch (error) {
     console.error("gagal getDetailReportHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
+}
+
+export async function updateStatusReportHandler(request, h) {
+  try {
+    const reportId = request.params.id;
+    const { status } = request.payload;
+
+    if (!status) {
+      return h
+        .response({
+          status: "fail",
+          message: "Status tidak boleh kosong",
+        })
+        .code(400);
+    }
+
+    const report = await Report.findByIdAndUpdate(
+      reportId,
+      { status },
+      { new: true }
+    );
+
+    if (!report) {
+      return h
+        .response({
+          status: "fail",
+          message: "Laporan tidak ditemukan",
+        })
+        .code(404);
+    }
+    const statusList = ["menunggu", "diproses", "selesai"];
+    if (!statusList.includes(status)) {
+      return h
+        .response({
+          status: "fail",
+          message: `Status harus salah satu dari ${statusList.join(", ")}`,
+        })
+        .code(400);
+    }
+    return h
+      .response({
+        status: "success",
+        message: "Status laporan berhasil diperbarui",
+        status: report.status,
+      })
+      .code(200);
+  } catch (error) {
+    console.error("gagal updateStatusReportHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
+}
+
+export async function deleteReportByIdHandler(request, h) {
+  try {
+    const reportId = request.params.id;
+    const report = await Report.findByIdAndDelete(reportId);
+    if (!report) {
+      return h
+        .response({
+          status: "fail",
+          message: "Laporan tidak ditemukan",
+        })
+        .code(404);
+    }
+    return h
+      .response({
+        status: "success",
+        message: "Laporan berhasil dihapus",
+      })
+      .code(200);
+  } catch (error) {
+    console.error("gagal deleteReportHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
 }

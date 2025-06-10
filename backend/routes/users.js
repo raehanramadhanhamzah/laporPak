@@ -27,7 +27,7 @@ const routesUsers = [
   },
   {
     method: "PUT",
-    path: `${PATH.USERS}/{id}/update-profile`,
+    path: `${PATH.USERS}/{id}/profile`,
     handler: updateProfileByIdHandler,
     options: {
       auth: "jwt",
@@ -35,10 +35,19 @@ const routesUsers = [
   },
   {
     method: "PUT",
-    path: `${PATH.USERS}/{id}/update-password`,
+    path: `${PATH.USERS}/{id}/password`,
     handler: updatePasswordByIdHandler,
     options: {
       auth: "jwt",
+    },
+  },
+  {
+    method: "DELETE",
+    path: `${PATH.USERS}/{id}/delete`,
+    handler: deleteUserByIdHandler,
+    options: {
+      auth: "jwt",
+      pre: [{ method: onlyAdminOrPetugas }],
     },
   },
 ];
