@@ -2,6 +2,7 @@ import jwt from "@hapi/jwt";
 import mongoose from 'mongoose';
 import { CONFIG } from "../config/config.js";
 import { v2 as cloudinary } from 'cloudinary';
+import Boom from '@hapi/boom';
 
 export async function setupAuth(server) {
   await server.register(jwt);
@@ -57,4 +58,19 @@ export async function uploadFile(fileStream) {
     console.error('Upload gagal:', error);
     throw error;
   }
+}
+
+export function onlyAdminOrPetugas(request, h) {
+  const { role } = request.auth.credentials;
+  if (role === "admin" || role === "petugas") {
+    return h.continue;
+  }
+  throw Boom.forbidden("Akses ditolak: hanya admin atau petugas yang diperbolehkan");
+}
+export function onlyAdmin(request, h) {
+  const { role } = request.auth.credentials;
+  if (role === "admin") {
+    return h.continue;
+  }
+  throw Boom.forbidden("Akses ditolak: hanya admin yang diperbolehkan");
 }
