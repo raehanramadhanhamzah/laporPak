@@ -122,7 +122,7 @@ export async function createReportHandler(request, h) {
       }
       const existingUser = await User.findOne({ phone });
       if (!existingUser) {
-        reporterId: ;
+        reporterId:;
         baseReportData.reporterInfo = {
           name,
           phone,
@@ -132,7 +132,7 @@ export async function createReportHandler(request, h) {
           kelurahan: kelurahan || null,
           kecamatan: kecamatan || null,
         };
-      }else {
+      } else {
         baseReportData.reporterId = existingUser._id;
       }
     }
@@ -176,37 +176,42 @@ export async function createReportHandler(request, h) {
   }
 }
 
-export async function getAllReportHandler(request, h) {
+export async function getAllReportsHandler(request, h) {
   try {
-    const { title, page, limit } = request.query;
+    const { title, reportType, status, page, limit } = request.query;
 
     let query = {};
     if (title) {
       query.title = { $regex: title, $options: "i" };
+    }
+    if (reportType) {
+      query.reportType = reportType;
+    }
+    if (status) {
+      query.status = status;
     }
 
     let reports;
     let pagination = null;
 
     if (!page || !limit) {
-      reports = await Report.find(query);
+      reports = await Report.find(query).populate("reporterId", "name");
     } else {
       const p = parseInt(page);
       const l = parseInt(limit);
       const skip = (p - 1) * l;
 
       reports = await Report.find(query)
-
         .skip(skip)
-        .limit(l);
+        .limit(l)
+        .populate("reporterId", "name");
 
-      const totalUsers = await Report.countDocuments(query);
-
+      const totalReports = await Report.countDocuments(query);
       pagination = {
         currentPage: p,
         limit: l,
-        totalUsers,
-        totalPages: Math.ceil(totalUsers / l),
+        totalReports,
+        totalPages: Math.ceil(totalReports / l),
       };
     }
 
@@ -218,6 +223,7 @@ export async function getAllReportHandler(request, h) {
             ? "Berhasil mendapatkan semua laporan"
             : "Report tidak ditemukan",
         listReport: reports,
+        pagination,
       })
       .code(200);
   } catch (error) {

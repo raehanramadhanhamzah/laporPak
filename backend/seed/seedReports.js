@@ -1,1 +1,1 @@
-// export function seedReports(k) {
+// export function seedReports() {
