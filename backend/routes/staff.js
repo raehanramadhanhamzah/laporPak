@@ -1,6 +1,7 @@
 import {
   createStaffHandler,
   updateStaffByIdHandler,
+  updateStaffPasswordHandler,
   deleteStaffByIdHandler,
 
 } from "../handler/staffHandler.js";
@@ -22,6 +23,15 @@ const routesStaff = [
     method: "PUT",
     path: `${PATH.STAFF}/{id}`,
     handler: updateStaffByIdHandler,
+    options: {
+      auth: "jwt",
+      pre: [{ method: onlyAdminOrPetugas }],
+    },
+  },
+  {
+    method: "PUT",
+    path: `${PATH.STAFF}/{id}/password`,
+    handler: updateStaffPasswordHandler,
     options: {
       auth: "jwt",
       pre: [{ method: onlyAdminOrPetugas }],

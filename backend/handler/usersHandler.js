@@ -4,9 +4,14 @@ import bcrypt from "bcrypt";
 
 export async function getAllUsersHandler(request, h) {
   try {
-    const { title, page, limit } = request.query;
+    const { role, title, page, limit } = request.query;
 
     let query = {};
+
+    if (role) {
+      query.role = role;
+    }
+
     if (title) {
       query.title = { $regex: title, $options: "i" };
     }
@@ -21,10 +26,7 @@ export async function getAllUsersHandler(request, h) {
       const l = parseInt(limit);
       const skip = (p - 1) * l;
 
-      reports = await Report.find(query)
-
-        .skip(skip)
-        .limit(l);
+      reports = await Report.find(query).skip(skip).limit(l);
 
       const totalUsers = await Report.countDocuments(query);
 
@@ -44,10 +46,11 @@ export async function getAllUsersHandler(request, h) {
             ? "Berhasil mendapatkan Laporan"
             : "Report tidak ditemukan",
         listUser: reports,
+        pagination,
       })
       .code(200);
   } catch (error) {
-    console.error("gagal getAllReportsHandler:", error);
+    console.error("gagal getAllUsersHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
 }

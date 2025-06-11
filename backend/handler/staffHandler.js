@@ -75,7 +75,7 @@ export async function createStaffHandler(request, h) {
 export async function updateStaffByIdHandler(request, h) {
   try {
     const userId = request.params.id;
-    const { name, email, phone, address, rt, rw, kelurahan, kecamatan } =
+    const { name, phone, address, rt, rw, kelurahan, kecamatan } =
       request.payload;
 
     const user = await User.findById(userId);
@@ -88,47 +88,41 @@ export async function updateStaffByIdHandler(request, h) {
         .code(404);
     }
 
-    if (email) {
-      const existingEmail = await User.findOne({ email, _id: { $ne: userId } });
-      if (existingEmail) {
-        return h
-          .response({
-            status: "fail",
-            message: "Email sudah digunakan oleh petugas lain",
-          })
-          .code(409);
-      }
+    if (!name) {
+      return h
+        .response({
+          status: "fail",
+          message: "Nama wajib diisi",
+        })
+        .code(400);
     }
 
-    if (phone !== undefined) {
-      if (!phone) {
-        return h
-          .response({
-            status: "fail",
-            message: "Nomor telepon wajib diisi",
-          })
-          .code(400);
-      }
-
-      const phoneOwner = await User.findOne({ phone, _id: { $ne: userId } });
-      if (phoneOwner) {
-        return h
-          .response({
-            status: "fail",
-            message: "Nomor telepon sudah digunakan oleh petugas lain",
-          })
-          .code(409);
-      }
+    if (phone === undefined || phone === "") {
+      return h
+        .response({
+          status: "fail",
+          message: "Nomor telepon wajib diisi",
+        })
+        .code(400);
     }
 
-    user.name = name || user.name;
-    user.email = email || user.email;
-    user.phone = phone || user.phone;
-    user.address = address || user.address;
-    user.rt = rt || user.rt;
-    user.rw = rw || user.rw;
-    user.kelurahan = kelurahan || user.kelurahan;
-    user.kecamatan = kecamatan || user.kecamatan;
+    const phoneOwner = await User.findOne({ phone, _id: { $ne: userId } });
+    if (phoneOwner) {
+      return h
+        .response({
+          status: "fail",
+          message: "Nomor telepon sudah digunakan oleh petugas lain",
+        })
+        .code(409);
+    }
+
+    user.name = name;
+    user.phone = phone;
+    user.address = address || null;
+    user.rt = rt || null;
+    user.rw = rw || null;
+    user.kelurahan = kelurahan || null;
+    user.kecamatan = kecamatan || null;
     user.updatedAt = new Date();
 
     await user.save();
@@ -145,6 +139,57 @@ export async function updateStaffByIdHandler(request, h) {
     return h.response({ error: error.message }).code(500);
   }
 }
+
+export async function updateStaffPasswordHandler(request, h) {
+  try {
+    const userId = request.params.id;
+    const { newPassword, confirmPassword } = request.payload;
+
+    if (!newPassword || !confirmPassword) {
+      return h
+        .response({
+          status: "fail",
+          message: "Password baru dan konfirmasi wajib diisi",
+        })
+        .code(400);
+    }
+
+    if (newPassword !== confirmPassword) {
+      return h
+        .response({
+          status: "fail",
+          message: "Konfirmasi password tidak cocok",
+        })
+        .code(400);
+    }
+
+    const user = await User.findById(userId);
+    if (!user) {
+      return h
+        .response({
+          status: "fail",
+          message: "Akun petugas tidak ditemukan",
+        })
+        .code(404);
+    }
+
+    user.password = newPassword;
+    user.updatedAt = new Date();
+
+    await user.save();
+
+    return h
+      .response({
+        status: "success",
+        message: "Password berhasil diperbarui",
+      })
+      .code(200);
+  } catch (error) {
+    console.error("gagal updateStaffPasswordHandler:", error);
+    return h.response({ error: error.message }).code(500);
+  }
+}
+
 export async function deleteStaffByIdHandler(request, h) {
   try {
     const userId = request.params.id;
@@ -162,11 +207,10 @@ export async function deleteStaffByIdHandler(request, h) {
     return h
       .response({
         status: "success",
-        message: "Berhasil menghapus petugas",
+        message: "Berhasil menghapus akun petugas",
       })
       .code(200);
-  }
-  catch (error) {
+  } catch (error) {
     console.error("gagal deleteStaffByIdHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
