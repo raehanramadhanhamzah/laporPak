@@ -1,6 +1,8 @@
 import { Report } from "../model/reportModel.js";
+import { User } from "../model/userModel.js";
 import { uploadFile } from "../utils/index.js";
 import { QuickReport, StandardReport } from "../model/reportModel.js";
+import { predictCategory } from "../utils/index.js";
 export async function createReportHandler(request, h) {
   try {
     const {
@@ -27,7 +29,8 @@ export async function createReportHandler(request, h) {
     const userId = request.auth.isAuthenticated
       ? request.auth.credentials.userId
       : null;
-
+    const resultPredict = await predictCategory(title, description);
+    const category = resultPredict.category;
     let parsedLocation = location;
     if (typeof location === "string") {
       parsedLocation = JSON.parse(location);
@@ -72,27 +75,66 @@ export async function createReportHandler(request, h) {
       location: parsedLocation,
       photoUrl,
       videoUrl,
+      category,
       reporterInfo: undefined,
     };
 
     if (!userId) {
-      if (!name || !phone || !address || !kelurahan || !kecamatan) {
-        return h
-          .response({
-            status: "fail",
-            message: "Selain RT dan RW, semua field wajib diisi.",
-          })
-          .code(400);
+      const isMissingCommon = !name || !phone;
+
+      if (reportType === "biasa") {
+        if (!rescueType) {
+          return h
+            .response({
+              status: "fail",
+              message: "Jenis penyelamatan wajib diisi.",
+            })
+            .code(400);
+        }
+        if (isMissingCommon || !address || !kelurahan || !kecamatan) {
+          return h
+            .response({
+              status: "fail",
+              message: "Selain RT dan RW, semua field wajib diisi.",
+            })
+            .code(400);
+        }
       }
-      baseReportData.reporterInfo = {
-        name,
-        phone,
-        address,
-        rt,
-        rw,
-        kelurahan,
-        kecamatan,
-      };
+
+      if (reportType === "darurat") {
+        if (!fireType || !hasCasualties || !urgencyLevel) {
+          return h
+            .response({
+              status: "fail",
+              message:
+                "Jenis kebakaran, ada korban, dan tingkat urgensi wajib diisi.",
+            })
+            .code(400);
+        }
+        if (isMissingCommon) {
+          return h
+            .response({
+              status: "fail",
+              message: "Nama, nomor telepon wajib diisi.",
+            })
+            .code(400);
+        }
+      }
+      const existingUser = await User.findOne({ phone });
+      if (!existingUser) {
+        reporterId: ;
+        baseReportData.reporterInfo = {
+          name,
+          phone,
+          address: address || null,
+          rt: rt || null,
+          rw: rw || null,
+          kelurahan: kelurahan || null,
+          kecamatan: kecamatan || null,
+        };
+      }else {
+        baseReportData.reporterId = existingUser._id;
+      }
     }
 
     let report;
@@ -125,10 +167,12 @@ export async function createReportHandler(request, h) {
       .code(201);
   } catch (error) {
     console.error("gagal createReportHandler:", error);
-    return h.response({
-      status: "fail",
-      message: error.message || "Gagal membuat laporan",
-    }).code(500);
+    return h
+      .response({
+        status: "fail",
+        message: error.message || "Gagal membuat laporan",
+      })
+      .code(500);
   }
 }
 
