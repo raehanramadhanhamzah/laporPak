@@ -101,7 +101,7 @@ export async function predictCategory(title, description) {
   };
 
   try {
-    const data = `${title} ${description}`;
+    const data = `${title}. ${description}`;
     const lowerData = data.toLowerCase();
 
     const response = await fetch(

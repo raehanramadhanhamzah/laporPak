@@ -1,12 +1,9 @@
 import {
-  createStaffHandler,
-  getUsersByRoleHandler,
+  getAllUsersHandler,
   getDetailUsersHandler,
   updateProfileByIdHandler,
   updatePasswordByIdHandler,
-  updateStaffByIdHandler,
   deleteUserByIdHandler,
-  deleteStaffByIdHandler,
 
 } from "../handler/usersHandler.js";
 import { PATH } from "../config/config.js";
@@ -16,7 +13,7 @@ const routesUsers = [
   {
     method: "GET",
     path: PATH.USERS,
-    handler: getUsersByRoleHandler,
+    handler: getAllUsersHandler,
     options: {
       auth: "jwt",
       pre: [{ method: onlyAdminOrPetugas }],
@@ -48,39 +45,14 @@ const routesUsers = [
   },
   {
     method: "DELETE",
-    path: `${PATH.USERS}/{id}/user`,
+    path: `${PATH.USERS}/{id}`,
     handler: deleteUserByIdHandler,
     options: {
       auth: "jwt",
       pre: [{ method: onlyAdminOrPetugas }],
     },
   },
-  {
-    method: "POST",
-    path: PATH.USERS,
-    handler: createStaffHandler,
-    options: {
-      auth: "jwt",
-      pre: [{ method: onlyAdmin }],
-    },
-  },
-  {
-    method: "PUT",
-    path: `${PATH.USERS}/{id}/staff`,
-    handler: updateStaffByIdHandler,
-    options: {
-      auth: "jwt",
-      pre: [{ method: onlyAdminOrPetugas }],
-    },
-  },
-  {
-    method: "DELETE",
-    path: `${PATH.USERS}/{id}/staff`,
-    handler: deleteStaffByIdHandler,
-    options: {
-      auth: "jwt",
-      pre: [{ method: onlyAdmin }],
-    },
-  },
+
+
 ];
 export default routesUsers;

@@ -1,6 +1,6 @@
 import {
   createReportHandler,
-  getAllReportHandler,
+  getAllReportsHandler,
   getDetailReportHandler,
   updateStatusReportHandler,
   deleteReportByIdHandler,
@@ -28,7 +28,7 @@ const routesReports = [
   {
     method: "GET",
     path: PATH.REPORTS,
-    handler: getAllReportHandler,
+    handler: getAllReportsHandler,
     options: {
       auth: "jwt",
     },
@@ -43,7 +43,7 @@ const routesReports = [
   },
   {
     method: "PUT",
-    path: `${PATH.REPORTS}/{id}/status`,
+    path: `${PATH.REPORTS}/{id}`,
     handler: updateStatusReportHandler,
     options: {
       auth: "jwt",
@@ -52,7 +52,7 @@ const routesReports = [
   },
   {
     method: "DELETE",
-    path: `${PATH.REPORTS}/{id}/delete`,
+    path: `${PATH.REPORTS}/{id}`,
     handler: deleteReportByIdHandler,
     options: {
       auth: "jwt",
