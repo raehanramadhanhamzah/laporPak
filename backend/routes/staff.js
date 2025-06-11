@@ -37,3 +37,5 @@ const routesStaff = [
     },
   },
 ];
+
+export default routesStaff;
