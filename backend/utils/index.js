@@ -74,11 +74,3 @@ export function onlyAdmin(request, h) {
   }
   throw Boom.forbidden("Akses ditolak: hanya admin yang diperbolehkan");
 }
-
-export function onlyAdmin(request, h) {
-  const { role } = request.auth.credentials;
-  if (role === "admin") {
-    return h.continue;
-  }
-  throw Boom.forbidden("Akses ditolak: hanya admin yang diperbolehkan");
-}
