@@ -35,6 +35,21 @@ const reportSchema = new mongoose.Schema(
       type: String,
       default: null,
     },
+    category: {
+      type: String,
+      enum: [
+        "evakuasi_penyelamatan_hewan",
+        "kebakaran",
+        "layanan_lingkungan_dan_fasilitas_umum",
+        "penyelamatan_non_hewan_dan_bantuan_teknis",
+      ],
+      default: null,
+    },
+    status: {
+      type: String,
+      enum: ["menunggu", "diproses", "selesai"],
+      default: "menunggu",
+    },
     reporterId: {
       type: mongoose.Schema.Types.ObjectId,
       ref: "user",
@@ -61,7 +76,7 @@ const Report = mongoose.model("Report", reportSchema);
 
 const quickReportSchema = new mongoose.Schema({
   fireType: { type: String, required: true },
-  hasCasualties: { type: Boolean, required: true },
+  hasCasualties: { type: Boolean, required: true, default: false },
   urgencyLevel: {
     type: String,
     enum: ["rendah", "sedang", "tinggi", "kritis"],

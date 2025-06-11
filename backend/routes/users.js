@@ -1,17 +1,22 @@
 import {
-  getAllUsersHandler,
+  createStaffHandler,
+  getUsersByRoleHandler,
   getDetailUsersHandler,
   updateProfileByIdHandler,
   updatePasswordByIdHandler,
+  updateStaffByIdHandler,
   deleteUserByIdHandler,
+  deleteStaffByIdHandler,
+
 } from "../handler/usersHandler.js";
 import { PATH } from "../config/config.js";
 import { onlyAdminOrPetugas } from "../utils/index.js";
+import { onlyAdmin } from "../utils/index.js";
 const routesUsers = [
   {
     method: "GET",
     path: PATH.USERS,
-    handler: getAllUsersHandler,
+    handler: getUsersByRoleHandler,
     options: {
       auth: "jwt",
       pre: [{ method: onlyAdminOrPetugas }],
@@ -27,7 +32,7 @@ const routesUsers = [
   },
   {
     method: "PUT",
-    path: `${PATH.USERS}/{id}/update-profile`,
+    path: `${PATH.USERS}/{id}/profile`,
     handler: updateProfileByIdHandler,
     options: {
       auth: "jwt",
@@ -35,10 +40,46 @@ const routesUsers = [
   },
   {
     method: "PUT",
-    path: `${PATH.USERS}/{id}/update-password`,
+    path: `${PATH.USERS}/{id}/password`,
     handler: updatePasswordByIdHandler,
     options: {
       auth: "jwt",
+    },
+  },
+  {
+    method: "DELETE",
+    path: `${PATH.USERS}/{id}/user`,
+    handler: deleteUserByIdHandler,
+    options: {
+      auth: "jwt",
+      pre: [{ method: onlyAdminOrPetugas }],
+    },
+  },
+  {
+    method: "POST",
+    path: PATH.USERS,
+    handler: createStaffHandler,
+    options: {
+      auth: "jwt",
+      pre: [{ method: onlyAdmin }],
+    },
+  },
+  {
+    method: "PUT",
+    path: `${PATH.USERS}/{id}/staff`,
+    handler: updateStaffByIdHandler,
+    options: {
+      auth: "jwt",
+      pre: [{ method: onlyAdminOrPetugas }],
+    },
+  },
+  {
+    method: "DELETE",
+    path: `${PATH.USERS}/{id}/staff`,
+    handler: deleteStaffByIdHandler,
+    options: {
+      auth: "jwt",
+      pre: [{ method: onlyAdmin }],
     },
   },
 ];

@@ -2,8 +2,11 @@ import {
   createReportHandler,
   getAllReportHandler,
   getDetailReportHandler,
+  updateStatusReportHandler,
+  deleteReportByIdHandler,
 } from "../handler/reportHandler.js";
 import { PATH } from "../config/config.js";
+import { onlyAdminOrPetugas } from "../utils/index.js";
 const routesReports = [
   {
     method: "POST",
@@ -38,5 +41,24 @@ const routesReports = [
       auth: "jwt",
     },
   },
+  {
+    method: "PUT",
+    path: `${PATH.REPORTS}/{id}/status`,
+    handler: updateStatusReportHandler,
+    options: {
+      auth: "jwt",
+      pre: [{ method: onlyAdminOrPetugas }],
+    },
+  },
+  {
+    method: "DELETE",
+    path: `${PATH.REPORTS}/{id}/delete`,
+    handler: deleteReportByIdHandler,
+    options: {
+      auth: "jwt",
+      pre: [{ method: onlyAdminOrPetugas }],
+    },
+  },
+
 ];
 export default routesReports;
