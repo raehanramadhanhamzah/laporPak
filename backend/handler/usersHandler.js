@@ -1,36 +1,32 @@
 import { User } from "../model/userModel.js";
 import { Report } from "../model/reportModel.js";
 import bcrypt from "bcrypt";
-export async function getUsersByRoleHandler(request, h) {
+
+export async function getAllUsersHandler(request, h) {
   try {
-    const { role, name, page, limit } = request.query;
+    const { title, page, limit } = request.query;
 
-    if (!role) {
-      return h
-        .response({
-          status: "fail",
-          message: "Parameter 'role' wajib diisi",
-        })
-        .code(400);
-    }
-    let query = { role };
-    if (name) {
-      query.name = { $regex: name, $options: "i" };
+    let query = {};
+    if (title) {
+      query.title = { $regex: title, $options: "i" };
     }
 
-    let users;
+    let reports;
     let pagination = null;
 
     if (!page || !limit) {
-      users = await User.find(query).select("-password");
+      reports = await Report.find(query);
     } else {
       const p = parseInt(page);
       const l = parseInt(limit);
       const skip = (p - 1) * l;
 
-      users = await User.find(query).select("-password").skip(skip).limit(l);
+      reports = await Report.find(query)
 
-      const totalUsers = await User.countDocuments(query);
+        .skip(skip)
+        .limit(l);
+
+      const totalUsers = await Report.countDocuments(query);
 
       pagination = {
         currentPage: p,
@@ -44,15 +40,14 @@ export async function getUsersByRoleHandler(request, h) {
       .response({
         status: "success",
         message:
-          users.length > 0
-            ? `Berhasil mendapatkan user ${role} `
-            : `${role} user tidak ditemukan`,
-        listUser: users,
-        pagination,
+          reports.length > 0
+            ? "Berhasil mendapatkan Laporan"
+            : "Report tidak ditemukan",
+        listUser: reports,
       })
       .code(200);
   } catch (error) {
-    console.error("gagal getUsersByRoleHandler:", error);
+    console.error("gagal getAllReportsHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
 }
@@ -257,178 +252,6 @@ export async function deleteUserByIdHandler(request, h) {
       .code(200);
   } catch (error) {
     console.error("gagal deleteUserByIdHandler:", error);
-    return h.response({ error: error.message }).code(500);
-  }
-}
-
-export async function createStaffHandler(request, h) {
-  try {
-    const {
-      name,
-      email,
-      password,
-      phone,
-      address,
-      rt,
-      rw,
-      kelurahan,
-      kecamatan,
-    } = request.payload;
-
-    if (!name || !email || !password || !phone || !address) {
-      return h
-        .response({
-          status: "fail",
-          message: "Semua field wajib diisi",
-        })
-        .code(400);
-    }
-
-    const existingEmail = await User.findOne({ email });
-    if (existingEmail) {
-      return h
-        .response({
-          status: "fail",
-          message: "Email sudah digunakan oleh petugas lain",
-        })
-        .code(409);
-    }
-
-    const existingPhone = await User.findOne({ phone });
-    if (existingPhone) {
-      return h
-        .response({
-          status: "fail",
-          message: "Nomor telepon sudah digunakan oleh petugas lain",
-        })
-        .code(409);
-    }
-
-    const newUser = new User({
-      name,
-      email,
-      password,
-      phone,
-      address,
-      rt,
-      rw,
-      kelurahan,
-      kecamatan,
-      role: "petugas",
-    });
-
-    await newUser.save();
-
-    return h
-      .response({
-        status: "success",
-        message: "Berhasil membuat petugas baru",
-        user: newUser,
-      })
-      .code(201);
-  } catch (error) {
-    console.error("gagal createStaffHandler:", error);
-    return h.response({ error: error.message }).code(500);
-  }
-}
-
-export async function updateStaffByIdHandler(request, h) {
-  try {
-    const userId = request.params.id;
-    const { name, email, phone, address, rt, rw, kelurahan, kecamatan } =
-      request.payload;
-
-    const user = await User.findById(userId);
-    if (!user) {
-      return h
-        .response({
-          status: "fail",
-          message: "Akun petugas tidak ditemukan",
-        })
-        .code(404);
-    }
-
-    if (email) {
-      const existingEmail = await User.findOne({ email, _id: { $ne: userId } });
-      if (existingEmail) {
-        return h
-          .response({
-            status: "fail",
-            message: "Email sudah digunakan oleh petugas lain",
-          })
-          .code(409);
-      }
-    }
-
-    if (phone !== undefined) {
-      if (!phone) {
-        return h
-          .response({
-            status: "fail",
-            message: "Nomor telepon wajib diisi",
-          })
-          .code(400);
-      }
-
-      const phoneOwner = await User.findOne({ phone, _id: { $ne: userId } });
-      if (phoneOwner) {
-        return h
-          .response({
-            status: "fail",
-            message: "Nomor telepon sudah digunakan oleh petugas lain",
-          })
-          .code(409);
-      }
-    }
-
-    user.name = name || user.name;
-    user.email = email || user.email;
-    user.phone = phone || user.phone;
-    user.address = address || user.address;
-    user.rt = rt || user.rt;
-    user.rw = rw || user.rw;
-    user.kelurahan = kelurahan || user.kelurahan;
-    user.kecamatan = kecamatan || user.kecamatan;
-    user.updatedAt = new Date();
-
-    await user.save();
-
-    return h
-      .response({
-        status: "success",
-        message: "Berhasil memperbarui data petugas",
-        updatedUser: user,
-      })
-      .code(200);
-  } catch (error) {
-    console.error("gagal updateStaffByIdHandler:", error);
-    return h.response({ error: error.message }).code(500);
-  }
-}
-
-export async function deleteStaffByIdHandler(request, h) {
-  try {
-    const userId = request.params.id;
-    const user = await User.findById(userId);
-    if (!user) {
-      return h
-        .response({
-          status: "fail",
-          message: "Akun petugas tidak ditemukan",
-        })
-        .code(404);
-    }
-
-    await User.deleteOne({ _id: userId });
-    return h
-      .response({
-        status: "success",
-        message: "Berhasil menghapus petugas",
-      })
-      .code(200);
-  }
-  catch (error) {
-    console.error("gagal deleteStaffByIdHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
 }
