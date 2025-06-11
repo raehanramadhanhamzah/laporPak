@@ -1,4 +1,5 @@
 import { Report } from "../model/reportModel.js";
+import { User } from "../model/userModel.js";
 import { uploadFile } from "../utils/index.js";
 import { QuickReport, StandardReport } from "../model/reportModel.js";
 import { predictCategory } from "../utils/index.js";
@@ -79,7 +80,7 @@ export async function createReportHandler(request, h) {
     };
 
     if (!userId) {
-      const isMissingCommon = !name || !phone ;
+      const isMissingCommon = !name || !phone;
 
       if (reportType === "biasa") {
         if (!rescueType) {
@@ -90,7 +91,7 @@ export async function createReportHandler(request, h) {
             })
             .code(400);
         }
-        if (isMissingCommon|| !address || !kelurahan || !kecamatan) {
+        if (isMissingCommon || !address || !kelurahan || !kecamatan) {
           return h
             .response({
               status: "fail",
@@ -119,16 +120,21 @@ export async function createReportHandler(request, h) {
             .code(400);
         }
       }
-
-      baseReportData.reporterInfo = {
-        name,
-        phone,
-        address: address || null,
-        rt: rt || null,
-        rw: rw || null,
-        kelurahan: kelurahan || null,
-        kecamatan: kecamatan || null,
-      };
+      const existingUser = await User.findOne({ phone });
+      if (!existingUser) {
+        reporterId: ;
+        baseReportData.reporterInfo = {
+          name,
+          phone,
+          address: address || null,
+          rt: rt || null,
+          rw: rw || null,
+          kelurahan: kelurahan || null,
+          kecamatan: kecamatan || null,
+        };
+      }else {
+        baseReportData.reporterId = existingUser._id;
+      }
     }
 
     let report;
