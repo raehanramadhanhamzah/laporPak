@@ -79,7 +79,7 @@ export async function createReportHandler(request, h) {
     };
 
     if (!userId) {
-      const isMissingCommon = !name || !phone || !address;
+      const isMissingCommon = !name || !phone ;
 
       if (reportType === "biasa") {
         if (!rescueType) {
@@ -90,7 +90,7 @@ export async function createReportHandler(request, h) {
             })
             .code(400);
         }
-        if (isMissingCommon || !kelurahan || !kecamatan) {
+        if (isMissingCommon|| !address || !kelurahan || !kecamatan) {
           return h
             .response({
               status: "fail",
@@ -114,7 +114,7 @@ export async function createReportHandler(request, h) {
           return h
             .response({
               status: "fail",
-              message: "Nama, nomor telepon, dan alamat wajib diisi.",
+              message: "Nama, nomor telepon wajib diisi.",
             })
             .code(400);
         }
@@ -123,7 +123,7 @@ export async function createReportHandler(request, h) {
       baseReportData.reporterInfo = {
         name,
         phone,
-        address,
+        address: address || null,
         rt: rt || null,
         rw: rw || null,
         kelurahan: kelurahan || null,
