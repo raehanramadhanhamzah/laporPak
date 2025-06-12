@@ -62,7 +62,7 @@ const routesReports = [
   },
   {
     method: "POST",
-    path: `${PATH.REPORTS}/predict-category`,
+    path: `${PATH.REPORTS}/predicted-category`,
     handler: predictCategoryHandler,
   },
 ];
