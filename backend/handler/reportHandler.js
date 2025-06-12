@@ -68,16 +68,40 @@ export async function createReportHandler(request, h) {
         throw new Error("File video tidak valid (hanya mp4, mov, webm)");
       }
     }
+    let finalReporterId = userId;
+
+    if (userId) {
+      const currentUser = await User.findById(userId);
+      if (currentUser && ["admin", "petugas"].includes(currentUser.role)) {
+        const targetUser = await User.findOne({ phone });
+        if (targetUser) {
+          finalReporterId = targetUser._id;
+        } else {
+          finalReporterId = null;
+        }
+      }
+    }
+
     const baseReportData = {
-      reporterId: userId || undefined,
+      reporterId: finalReporterId || undefined,
       title,
       description,
       location: parsedLocation,
       photoUrl,
       videoUrl,
       category,
-      reporterInfo: undefined,
     };
+    if (!finalReporterId) {
+      baseReportData.reporterInfo = {
+        name,
+        phone,
+        address: address || null,
+        rt: rt || null,
+        rw: rw || null,
+        kelurahan: kelurahan || null,
+        kecamatan: kecamatan || null,
+      };
+    }
 
     if (!userId) {
       const isMissingCommon = !name || !phone;
@@ -122,7 +146,6 @@ export async function createReportHandler(request, h) {
       }
       const existingUser = await User.findOne({ phone });
       if (!existingUser) {
-        reporterId:;
         baseReportData.reporterInfo = {
           name,
           phone,
@@ -135,6 +158,10 @@ export async function createReportHandler(request, h) {
       } else {
         baseReportData.reporterId = existingUser._id;
       }
+    }
+
+    if (baseReportData.reporterId) {
+      delete baseReportData.reporterInfo;
     }
 
     let report;
@@ -155,7 +182,7 @@ export async function createReportHandler(request, h) {
     } else {
       throw new Error("Invalid reportType");
     }
-
+    console.log("Base data:", baseReportData);
     await report.save();
 
     return h
@@ -195,7 +222,10 @@ export async function getAllReportsHandler(request, h) {
     let pagination = null;
 
     if (!page || !limit) {
-      reports = await Report.find(query).populate("reporterId", "name");
+      reports = await Report.find(query).populate(
+        "reporterId",
+        "name email phone"
+      );
     } else {
       const p = parseInt(page);
       const l = parseInt(limit);
@@ -204,7 +234,7 @@ export async function getAllReportsHandler(request, h) {
       reports = await Report.find(query)
         .skip(skip)
         .limit(l)
-        .populate("reporterId", "name");
+        .populate("reporterId", "name email phone");
 
       const totalReports = await Report.countDocuments(query);
       pagination = {
