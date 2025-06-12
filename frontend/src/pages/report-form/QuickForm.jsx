@@ -113,13 +113,13 @@ export default function QuickForm({
               {mlValidation && (
                 <div
                   className={`p-4 rounded-lg ${
-                    mlValidation.isEmergency
+                    mlValidation.isFire
                       ? 'bg-red-50 border border-red-200'
                       : 'bg-green-50 border border-green-200'
                   }`}
                 >
                   <div className="flex items-start">
-                    {mlValidation.isEmergency ? (
+                    {mlValidation.isFire ? ( 
                       <AlertTriangle className="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
                     ) : (
                       <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />

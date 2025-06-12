@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { createReport, getUserDetail } from "../../services/api";
+import { createReport, getUserDetail, predictedCategory } from "../../services/api";
 import { sendWhatsAppMessage, createReportWhatsAppMessage } from "../../services/whatsappservice";
 import QuickForm from "./QuickForm";
 
@@ -29,12 +29,14 @@ export default function QuickFormPresenter() {
       kelurahan: "",
       kecamatan: "",
     },
+    category: null,
+    predictResult: null,
   });
 
-  const [mlValidation, setMLValidation] = useState(null);
+  const [mlValidation, setMLValidation] = useState(null); 
   const [previewImage, setPreviewImage] = useState(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
-  const [validationTimeout, setValidationTimeout] = useState(null);
+  const [validationTimeout, setValidationTimeout] = useState(null); 
   const [errors, setErrors] = useState({});
   const [isOnline, setIsOnline] = useState(navigator.onLine);
   const [locationLoading, setLocationLoading] = useState(false);
@@ -92,14 +94,6 @@ export default function QuickFormPresenter() {
     };
   }, [previewImage, validationTimeout]);
 
-  useEffect(() => {
-    return () => {
-      if (previewImage && previewImage.startsWith("blob:")) {
-        URL.revokeObjectURL(previewImage);
-      }
-    };
-  }, [previewImage]);
-
   const validatePhone = (phone) => {
     const phoneRegex = /^(\+62|62|0)[0-9]{9,13}$/;
     return phoneRegex.test(phone.replace(/\s|-/g, ""));
@@ -122,101 +116,65 @@ export default function QuickFormPresenter() {
       .replace(/[<>]/g, "");
   };
 
-  useEffect(() => {
-    const handleOnline = () => setIsOnline(true);
-    const handleOffline = () => setIsOnline(false);
-
-    window.addEventListener("online", handleOnline);
-    window.addEventListener("offline", handleOffline);
-
-    return () => {
-      window.removeEventListener("online", handleOnline);
-      window.removeEventListener("offline", handleOffline);
-    };
-  }, []);
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      const token = localStorage.getItem("token");
-      if (token) {
-        try {
-          const user = localStorage.getItem("user");
-          const userDataFromLocalStorage = JSON.parse(user);
-          const userId = userDataFromLocalStorage.userId;
-          const userData = await getUserDetail(userId);
-
-          if (userData && userData.data) {
-            setForm((prev) => ({
-              ...prev,
-              reporterInfo: {
-                name: userData.data.name || "",
-                phone: userData.data.phone || "",
-                address: userData.data.address || "",
-                rt: userData.data.rt || "",
-                rw: userData.data.rw || "",
-                kelurahan: userData.data.kelurahan || "",
-                kecamatan: userData.data.kecamatan || "",
-              },
-            }));
-          }
-        } catch (err) {
-          console.error("Error loading user data:", err);
-          setUserDataError("Gagal memuat data pengguna. Silakan isi manual.");
-        }
-      }
-    };
-
-    loadUserData();
-  }, []);
-
-  const validateMLInput = useCallback((title, description, fireType) => {
+  const validateMLInput = useCallback((title, description) => {
     if (validationTimeout) {
       clearTimeout(validationTimeout);
     }
 
-    const timeout = setTimeout(() => {
-      const combinedText = `${title} ${description}`.toLowerCase();
-      const type = fireType.toLowerCase();
-      
-      let confidence = 70;
-      let suggestions = [];
-      let isCorrectCategory = true;
+    if (!title && !description) {
+      setMLValidation(null);
+      setForm(prev => ({ ...prev, category: null, predictResult: null }));
+      return;
+    }
 
-      const fireKeywords = ['api', 'bakar', 'kebakaran', 'terbakar', 'asap', 'flame'];
-      const hasFireKeywords = fireKeywords.some(keyword => combinedText.includes(keyword));
+    const timeout = setTimeout(async () => {
+      try {
+        const result = await predictedCategory(title, description);
 
-      if (!hasFireKeywords && combinedText.length > 0) {
-        suggestions.push('Pastikan ini adalah laporan kebakaran');
-        confidence = 60;
-        isCorrectCategory = false;
-      } else if (hasFireKeywords) {
-        confidence = 85;
-        if (combinedText.includes('besar') || combinedText.includes('parah')) {
-          suggestions.push('Situasi terlihat serius - pertimbangkan urgensi tinggi');
-          confidence = 90;
+        if (result.status === "success" && result.predictResult) {
+          const mlResult = result.predictResult;
+          const isFireFromML = mlResult.category === "kebakaran";
+
+          setMLValidation({
+            isFire: isFireFromML,
+            confidence: mlResult.score || 0, 
+            suggestions: isFireFromML ? ["Laporan ini terindikasi sebagai kebakaran."] : ["Laporan ini terindikasi sebagai non-kebakaran."],
+            message: `Prediksi kategori: ${mlResult.category ? mlResult.category.replace(/_/g, ' ') : 'Tidak diketahui'} (Skor: ${(mlResult.score * 100).toFixed(2)}%)`,
+          });
+
+          setForm((prev) => ({
+            ...prev,
+            category: mlResult.category,
+            predictResult: mlResult,
+          }));
+        } else {
+          setMLValidation({
+            isFire: false,
+            confidence: 0,
+            suggestions: [],
+            message: result.message || "Gagal memvalidasi kategori laporan dari backend. Silakan coba lagi.",
+          });
+          setForm((prev) => ({
+            ...prev,
+            category: null,
+            predictResult: { status: "error", message: result.message || "Prediction failed from backend" },
+          }));
         }
+      } catch (error) {
+        console.error("Error dalam prediksi kategori dari backend:", error);
+        setMLValidation({
+          isFire: false,
+          confidence: 0,
+          suggestions: [],
+          message: "Gagal memvalidasi kategori laporan. Terjadi kesalahan saat menghubungi backend.",
+        });
+        setForm((prev) => ({
+          ...prev,
+          category: null,
+          predictResult: { status: "error", message: "System error calling backend for prediction" },
+        }));
       }
-
-      if (combinedText.includes('korban') || combinedText.includes('luka') || combinedText.includes('terjebak')) {
-        suggestions.push('Ada indikasi korban - aktifkan "Ada Korban Jiwa"');
-        confidence += 5;
-      }
-
-      if (type.includes('rumah') && !combinedText.includes('rumah')) {
-        suggestions.push('Tambahkan detail lokasi rumah di deskripsi');
-      } else if (type.includes('kendaraan') && !combinedText.includes('mobil') && !combinedText.includes('motor')) {
-        suggestions.push('Spesifikasikan jenis kendaraan di deskripsi');
-      }
-
-      setMLValidation({
-        isFire: isCorrectCategory,
-        confidence: Math.min(confidence, 95),
-        suggestions,
-        message: isCorrectCategory 
-          ? `Laporan kebakaran tervalidasi (${confidence}% confidence)`
-          : `Mungkin bukan laporan kebakaran (${confidence}% confidence)`
-      });
-    }, 1000);
+    }, 3000);
 
     setValidationTimeout(timeout);
   }, [validationTimeout]);
@@ -224,30 +182,30 @@ export default function QuickFormPresenter() {
   const handleInputChange = (e) => {
     const { name, value, type, checked, files } = e.target;
 
+    let updatedForm = { ...form };
+    let fieldValue = type === "checkbox" ? checked : sanitizeInput(value);
+
     if (name === "image" && files) {
       const selectedFile = files[0];
       if (selectedFile) {
         if (!validateFileSize(selectedFile)) {
           alert("Ukuran file terlalu besar (maksimal 10MB)");
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+          if (fileInputRef.current) fileInputRef.current.value = "";
           setPreviewImage(null);
-          setForm(prev => ({ ...prev, image: null }));
+          updatedForm.image = null;
+          setForm(updatedForm);
           return;
         }
         if (!validateFileType(selectedFile)) {
           alert("Format file tidak didukung (JPG, PNG, WEBP, MP4, MOV, WEBM)");
-          if (fileInputRef.current) {
-            fileInputRef.current.value = "";
-          }
+          if (fileInputRef.current) fileInputRef.current.value = "";
           setPreviewImage(null);
-          setForm(prev => ({ ...prev, image: null }));
+          updatedForm.image = null;
+          setForm(updatedForm);
           return;
         }
 
-        setForm(prev => ({ ...prev, image: selectedFile }));
-        
+        updatedForm.image = selectedFile;
         if (selectedFile.type.startsWith('image/')) {
           setPreviewImage(URL.createObjectURL(selectedFile));
         } else {
@@ -256,29 +214,21 @@ export default function QuickFormPresenter() {
       }
     } else if (name.startsWith("reporterInfo.")) {
       const reporterInfoField = name.split(".")[1];
-      setForm((prev) => ({
-        ...prev,
-        reporterInfo: {
-          ...prev.reporterInfo,
-          [reporterInfoField]: sanitizeInput(value),
-        },
-      }));
+      updatedForm.reporterInfo = {
+        ...updatedForm.reporterInfo,
+        [reporterInfoField]: fieldValue,
+      };
     } else if (name.startsWith("location.")) {
       const locationField = name.split(".")[1];
-      setForm((prev) => ({
-        ...prev,
-        location: {
-          ...prev.location,
-          [locationField]: sanitizeInput(value),
-        },
-      }));
+      updatedForm.location = {
+        ...updatedForm.location,
+        [locationField]: fieldValue,
+      };
     } else {
-      const fieldValue = type === "checkbox" ? checked : sanitizeInput(value);
-      setForm((prev) => ({
-        ...prev,
-        [name]: fieldValue,
-      }));
+      updatedForm[name] = fieldValue;
     }
+
+    setForm(updatedForm);
 
     if (errors[name]) {
       setErrors((prev) => {
@@ -288,20 +238,18 @@ export default function QuickFormPresenter() {
       });
     }
 
-    if (name === "title" || name === "description" || name === "fireType") {
-      validateMLInput(
-        name === "title" ? value : form.title,
-        name === "description" ? value : form.description,
-        name === "fireType" ? value : form.fireType
-      );
+    if (name === "title" || name === "description") {
+      const currentTitle = name === "title" ? fieldValue : updatedForm.title;
+      const currentDescription = name === "description" ? fieldValue : updatedForm.description;
+      validateMLInput(currentTitle, currentDescription);
     }
   };
 
-const handleLocationChange = useCallback(
+  const handleLocationChange = useCallback(
     async (lat, lng, addressFromMap = null) => {
       setLocationLoading(true);
       try {
-        let addressToSet = form.location.address; 
+        let addressToSet = form.location.address;
         if (addressFromMap !== null) {
           addressToSet = addressFromMap;
         } else if (lat && lng) {
@@ -338,7 +286,7 @@ const handleLocationChange = useCallback(
             ...prev.location,
             latitude: lat,
             longitude: lng,
-            address: form.location.address || "Gagal mendapatkan alamat", 
+            address: form.location.address || "Gagal mendapatkan alamat",
           },
         }));
       } finally {
@@ -435,6 +383,10 @@ const handleLocationChange = useCallback(
       formData.append("hasCasualties", form.hasCasualties);
       formData.append("urgencyLevel", form.urgencyLevel);
 
+      if (form.category) {
+        formData.append("category", form.category);
+      }
+
       const locationData = {
         address: form.location.address,
         coordinates: {
@@ -450,7 +402,7 @@ const handleLocationChange = useCallback(
         locationData.coordinates.coordinates[0] === null &&
         locationData.coordinates.coordinates[1] === null
       ) {
-        locationData.coordinates = null; 
+        locationData.coordinates = null;
       }
 
       formData.append("location", JSON.stringify(locationData));
@@ -472,49 +424,35 @@ const handleLocationChange = useCallback(
 
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
-      for (let pair of formData.entries()) {
-        if (pair[0] === "image" || pair[0] === "video") {
-          console.log(pair[0], ":", pair[1].name); 
-        } else if (pair[0] === "location" || pair[0] === "reporterInfo") {
-            try {
-                console.log(pair[0], ":", JSON.parse(pair[1])); 
-            } catch (e) {
-                console.log(pair[0], ":", pair[1]); 
-            }
-        }
-        else {
-          console.log(pair[0], ":", pair[1]);
-        }
-      }
-
       const response = await createReport(formData, headers);
 
       const reportId = response.report_id || "UNKNOWN";
 
       const whatsappLocation = {
-          address: form.location.address,
-          coordinates: {
-              type: "Point",
-              coordinates: [
-                  form.location.longitude ? parseFloat(form.location.longitude) : null,
-                  form.location.latitude ? parseFloat(form.location.latitude) : null,
-              ],
-          },
+        address: form.location.address,
+        coordinates: {
+          type: "Point",
+          coordinates: [
+            form.location.longitude ? parseFloat(form.location.longitude) : null,
+            form.location.latitude ? parseFloat(form.location.latitude) : null,
+          ],
+        },
       };
 
       if (whatsappLocation.coordinates.coordinates[0] === null || whatsappLocation.coordinates.coordinates[1] === null || isNaN(whatsappLocation.coordinates.coordinates[0]) || isNaN(whatsappLocation.coordinates.coordinates[1])) {
-        whatsappLocation.coordinates = null; 
+        whatsappLocation.coordinates = null;
       }
 
+      let effectiveUrgencyLevel = form.urgencyLevel;
       if(form.hasCasualties) {
-        form.urgencyLevel = "kritis (ada korban)"
+          effectiveUrgencyLevel = "kritis (ada korban)";
       }
-      
+
       const whatsappMessage = createReportWhatsAppMessage({
         reportId,
         title: form.title,
         description: form.description,
-        urgencyLevel: form.urgencyLevel,
+        urgencyLevel: effectiveUrgencyLevel,
         fireType: form.fireType,
         reporterName: form.reporterInfo.name,
         location: whatsappLocation,
@@ -531,7 +469,7 @@ const handleLocationChange = useCallback(
         `✅ Laporan kebakaran berhasil dikirim!\n\n` +
           `ID Laporan: ${reportId}\n` +
           `Mode: Quick Report\n` +
-          `Urgensi: ${form.urgencyLevel.toUpperCase()}\n\n` +
+          `Urgensi: ${effectiveUrgencyLevel.toUpperCase()}\n\n` +
           `Tim Damkar akan segera menindaklanjuti.\n\n` +
           `📱 WhatsApp akan terbuka untuk konfirmasi laporan.`
       );
@@ -558,6 +496,8 @@ const handleLocationChange = useCallback(
           kelurahan: "",
           kecamatan: "",
         },
+        category: null, 
+        predictResult: null, 
       });
       setPreviewImage(null);
       setMLValidation(null);

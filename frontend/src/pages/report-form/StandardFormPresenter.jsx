@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { createReport, getUserDetail } from "../../services/api"; 
+import { createReport, getUserDetail, predictedCategory } from "../../services/api";
 import { sendWhatsAppMessage, createReportWhatsAppMessage } from "../../services/whatsappservice";
 import StandardForm from "./StandardForm";
 
@@ -12,13 +12,12 @@ export default function StandardFormPresenter() {
     description: "",
     location: {
       address: "",
-      latitude: "", 
+      latitude: "",
       longitude: "",
     },
     image: null,
-    video: null, 
-    rescueType: "",
-    additionalInfo: "", 
+    video: null,
+    additionalInfo: "",
     reporterInfo: {
       name: "",
       phone: "",
@@ -28,10 +27,12 @@ export default function StandardFormPresenter() {
       kelurahan: "",
       kecamatan: "",
     },
+    category: null,
+    predictResult: null, 
   });
 
   const [mlValidation, setMLValidation] = useState(null);
-  const [previewImages, setPreviewImages] = useState([]); 
+  const [previewImages, setPreviewImages] = useState([]);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [currentStep, setCurrentStep] = useState(1);
   const [validationTimeout, setValidationTimeout] = useState(null);
@@ -51,7 +52,7 @@ export default function StandardFormPresenter() {
     return file.size <= maxSize;
   };
 
- const validateFileType = (file) => {
+  const validateFileType = (file) => {
     const allowedImageTypes = ["image/jpeg", "image/png", "image/webp"];
     const allowedVideoTypes = ["video/mp4", "video/quicktime", "video/webm"];
     return allowedImageTypes.includes(file.type) || allowedVideoTypes.includes(file.type);
@@ -106,73 +107,108 @@ export default function StandardFormPresenter() {
     return () => {
       window.removeEventListener("online", handleOnline);
       window.removeEventListener("offline", handleOffline);
+      previewImages.forEach(p => URL.revokeObjectURL(p.url));
+      clearTimeout(validationTimeout);
     };
-  }, []);
+  }, [previewImages, validationTimeout]);
 
-  const validateMLInput = useCallback((title, description, type) => {
+  const validateMLInput = useCallback((title, description) => { 
     if (validationTimeout) {
       clearTimeout(validationTimeout);
     }
 
-    const timeout = setTimeout(() => {
-      const combinedText = `${title} ${description}`.toLowerCase();
-      const rescueType = type.toLowerCase();
-      
-      let confidence = 70;
-      let suggestions = [];
-      let isCorrectCategory = true;
+    if (!title && !description) {
+      setMLValidation(null);
+      setForm(prev => ({ ...prev, category: null, predictResult: null }));
+      return;
+    }
 
-      const rescueKeywords = ['selamat', 'tolong', 'bantuan', 'terjebak', 'tenggelam', 'jatuh', 'terjepit'];
-      const hasRescueKeywords = rescueKeywords.some(keyword => combinedText.includes(keyword));
+    const timeout = setTimeout(async () => {
+      try {
+        const result = await predictedCategory(title, description);
 
-      if (!hasRescueKeywords && combinedText.length > 0) {
-        suggestions.push('Pastikan ini adalah laporan penyelamatan/rescue');
-        confidence = 60;
-        isCorrectCategory = false;
-      } else if (hasRescueKeywords) {
-        confidence = 85;
+        if (result.status === "success" && result.predictResult) {
+          const mlResult = result.predictResult;
+          const predictedCategoryName = mlResult.category;
+          const predictedScore = mlResult.score || 0;
+          let suggestions = [];
+
+          if (predictedCategoryName === "kebakaran") {
+            suggestions.push("Laporan ini terindikasi *kebakaran* oleh AI. Harap gunakan 'Laporan Darurat' untuk kasus kebakaran.");
+          } else if (!predictedCategoryName.includes("penyelamatan") && !predictedCategoryName.includes("lingkungan")) {
+            suggestions.push(`AI memprediksi: "${predictedCategoryName.replace(/_/g, ' ')}" (Skor: ${(predictedScore * 100).toFixed(2)}%). Pastikan deskripsi Anda sudah jelas untuk laporan rescue.`);
+          }
+
+          setMLValidation({
+            isRescue: predictedCategoryName !== "kebakaran",
+            confidence: predictedScore,
+            suggestions: suggestions,
+            message: `Prediksi kategori: ${predictedCategoryName ? predictedCategoryName.replace(/_/g, ' ') : 'Tidak diketahui'} (Skor: ${(predictedScore * 100).toFixed(2)}%)`,
+          });
+
+          setForm((prev) => ({
+            ...prev,
+            category: predictedCategoryName, 
+            predictResult: mlResult, 
+          }));
+        } else {
+          setMLValidation({
+            isRescue: false,
+            confidence: 0,
+            suggestions: [],
+            message: result.message || "Gagal memvalidasi kategori laporan dari backend. Silakan coba lagi.",
+          });
+          setForm((prev) => ({
+            ...prev,
+            category: null,
+            predictResult: { status: "error", message: result.message || "Prediction failed from backend" },
+          }));
+        }
+      } catch (error) {
+        console.error("Error dalam prediksi kategori dari backend:", error);
+        setMLValidation({
+          isRescue: false,
+          confidence: 0,
+          suggestions: [],
+          message: "Gagal memvalidasi kategori laporan. Terjadi kesalahan saat menghubungi backend.",
+        });
+        setForm((prev) => ({
+          ...prev,
+          category: null,
+          predictResult: { status: "error", message: "System error calling backend for prediction" },
+        }));
       }
-
-      if ((combinedText.includes('hewan') || combinedText.includes('kucing') || combinedText.includes('anjing')) && !rescueType.includes('hewan') && !rescueType.includes('kucing')) {
-        suggestions.push('Sepertinya terkait penyelamatan hewan');
-        confidence = 80;
-      } else if ((combinedText.includes('air') || combinedText.includes('sungai') || combinedText.includes('kolam')) && rescueType !== 'penyelamatan_air') {
-        suggestions.push('Mungkin penyelamatan dari air?');
-        confidence = 82;
-      }
-
-      if (combinedText.includes('darurat') || combinedText.includes('segera') || combinedText.includes('urgent')) {
-        suggestions.push('Prioritas tinggi terdeteksi');
-        confidence += 5;
-      }
-
-      setMLValidation({
-        isRescue: isCorrectCategory,
-        confidence: Math.min(confidence, 95),
-        suggestions,
-        message: isCorrectCategory
-          ? `Laporan rescue tervalidasi (${confidence}% confidence)`
-          : `Mungkin bukan laporan rescue (${confidence}% confidence)`
-      });
-    }, 1000);
+    }, 3000);
 
     setValidationTimeout(timeout);
-  }, [validationTimeout]);
+  }, [validationTimeout]); 
 
-  const removeImage = (index) => {
-    setPreviewImages(prev => prev.filter((_, i) => i !== index));
-    
-    const newForm = { ...form };
-    if (index === 0 && previewImages[0]?.type === 'image') {
-      newForm.image = null;
-    } else if (index === 0 && previewImages[0]?.type === 'video') {
-      newForm.video = null;
-    } else if (index === 1 && previewImages[1]?.type === 'video') {
-      newForm.video = null;
-    }
-    
-    setForm(newForm);
-    
+  const removeImage = (indexToRemove) => {
+    setPreviewImages(prev => {
+      const newPreviews = prev.filter((_, i) => i !== indexToRemove);
+      if (prev[indexToRemove] && prev[indexToRemove].url) {
+        URL.revokeObjectURL(prev[indexToRemove].url);
+      }
+      return newPreviews;
+    });
+
+    setForm(prev => {
+        const newForm = { ...prev };
+        const updatedPreviews = previewImages.filter((_, i) => i !== indexToRemove);
+
+        if (updatedPreviews.some(p => p.type === 'image')) {
+            newForm.image = updatedPreviews.find(p => p.type === 'image')?.file || null;
+            newForm.video = null; 
+        } else if (updatedPreviews.some(p => p.type === 'video')) {
+            newForm.video = updatedPreviews.find(p => p.type === 'video')?.file || null;
+            newForm.image = null; 
+        } else {
+            newForm.image = null;
+            newForm.video = null;
+        }
+        return newForm;
+    });
+
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
@@ -180,22 +216,20 @@ export default function StandardFormPresenter() {
 
   const applySuggestion = (suggestion) => {
     const lowerSuggestion = suggestion.toLowerCase();
-    if (lowerSuggestion.includes('hewan')) {
-      setForm(prev => ({ ...prev, rescueType: 'penyelamatan_hewan' }));
-    } else if (lowerSuggestion.includes('air')) {
-      setForm(prev => ({ ...prev, rescueType: 'penyelamatan_air' }));
+    if (lowerSuggestion.includes('kebakaran')) {
+        alert("Laporan ini terindikasi kebakaran. Silakan buat 'Laporan Darurat' untuk kasus kebakaran.");
     }
-    
+
     setMLValidation(prev => ({
       ...prev,
       suggestions: prev.suggestions.filter(s => s !== suggestion)
     }));
   };
 
-const validateStep = useCallback((step) => {
+  const validateStep = useCallback((step) => {
     const newErrors = {};
-    const token = localStorage.getItem("token"); 
-    
+    const token = localStorage.getItem("token");
+
     if (step === 1) {
       if (!token) {
         if (!form.reporterInfo.name?.trim()) newErrors.reporterName = "Nama wajib diisi";
@@ -210,12 +244,17 @@ const validateStep = useCallback((step) => {
       }
     }
     if (step === 2) {
-      if (!form.rescueType) newErrors.rescueType = "Jenis rescue wajib dipilih";
       if (!form.title.trim()) newErrors.title = "Judul laporan wajib diisi";
       if (!form.description.trim()) {
         newErrors.description = "Deskripsi kejadian wajib diisi";
       } else if (form.description.trim().length < 20) {
         newErrors.description = "Deskripsi terlalu singkat (minimal 20 karakter)";
+      }
+      if ((form.title.trim() || form.description.trim()) && !form.category) {
+        newErrors.category = "Sistem sedang memprediksi kategori. Harap tunggu atau perbaiki judul/deskripsi.";
+      }
+      if (form.category === "kebakaran") {
+        newErrors.category = "Laporan ini terindikasi kebakaran. Harap buat Laporan Darurat.";
       }
     }
     if (step === 3) {
@@ -230,18 +269,19 @@ const validateStep = useCallback((step) => {
 
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
-  }, [form, validatePhone]); 
+  }, [form, validatePhone]);
 
   const handleInputChange = (e) => {
     const { name, value, files } = e.target;
 
-    if (name === "mediaUpload" && files) { 
+    if (name === "mediaUpload" && files) {
       const selectedFiles = Array.from(files);
-      if (selectedFiles.length > 2) { 
+      if (selectedFiles.length > 2) {
         alert("Anda hanya dapat mengunggah maksimal satu gambar dan satu video.");
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
+        previewImages.forEach(p => URL.revokeObjectURL(p.url));
         setPreviewImages([]);
         setForm(prev => ({ ...prev, image: null, video: null }));
         return;
@@ -264,10 +304,10 @@ const validateStep = useCallback((step) => {
 
         if (file.type.startsWith("image/")) {
           newImage = file;
-          newPreviews.push({ type: 'image', url: URL.createObjectURL(file), name: file.name });
+          newPreviews.push({ type: 'image', url: URL.createObjectURL(file), name: file.name, file: file });
         } else if (file.type.startsWith("video/")) {
           newVideo = file;
-          newPreviews.push({ type: 'video', url: URL.createObjectURL(file), name: file.name });
+          newPreviews.push({ type: 'video', url: URL.createObjectURL(file), name: file.name, file: file });
         }
       });
 
@@ -276,12 +316,13 @@ const validateStep = useCallback((step) => {
         if (fileInputRef.current) {
           fileInputRef.current.value = "";
         }
+        previewImages.forEach(p => URL.revokeObjectURL(p.url));
         setPreviewImages([]);
         setForm(prev => ({ ...prev, image: null, video: null }));
         return;
       }
 
-      setPreviewImages(newPreviews); 
+      setPreviewImages(newPreviews);
       setForm((prev) => ({
         ...prev,
         image: newImage,
@@ -331,12 +372,10 @@ const validateStep = useCallback((step) => {
       }
     }
 
-    if (name === "title" || name === "description" || name === "rescueType") {
-      validateMLInput(
-        name === "title" ? value : form.title,
-        name === "description" ? value : form.description,
-        name === "rescueType" ? value : form.rescueType
-      );
+    if (name === "title" || name === "description") {
+      const currentTitle = name === "title" ? sanitizeInput(value) : form.title;
+      const currentDescription = name === "description" ? sanitizeInput(value) : form.description;
+      validateMLInput(currentTitle, currentDescription);
     }
   };
 
@@ -382,14 +421,14 @@ const validateStep = useCallback((step) => {
             ...prev.location,
             latitude: lat,
             longitude: lng,
-            address: form.location.address || "Gagal mendapatkan alamat", 
+            address: form.location.address || "Gagal mendapatkan alamat",
           },
         }));
       } finally {
         setLocationLoading(false);
       }
     },
-    [errors, form.location.address] 
+    [errors, form.location.address]
   );
 
   const getCurrentLocation = () => {
@@ -444,6 +483,17 @@ const validateStep = useCallback((step) => {
       return;
     }
 
+    if (form.category === "kebakaran") {
+        alert("Laporan ini terindikasi kebakaran oleh AI. Harap buat 'Laporan Darurat' untuk kasus kebakaran.");
+        setIsSubmitting(false);
+        return;
+    }
+    if ((form.title.trim() || form.description.trim()) && !form.category) {
+        alert("Sistem masih memproses prediksi kategori. Harap tunggu sebentar.");
+        setIsSubmitting(false);
+        return;
+    }
+
     if (!isOnline) {
       alert("Tidak ada koneksi internet. Silakan coba lagi saat online.");
       return;
@@ -458,6 +508,13 @@ const validateStep = useCallback((step) => {
       formData.append("description", form.description);
       formData.append("reportType", "biasa"); 
 
+      formData.append("rescueType", form.category || ""); 
+      formData.append("category", form.category || "");
+
+      if (form.predictResult) {
+        formData.append("predictResult", JSON.stringify(form.predictResult));
+      }
+
       const locationData = {
         address: form.location.address,
         coordinates: {
@@ -469,11 +526,10 @@ const validateStep = useCallback((step) => {
         },
       };
       if (locationData.coordinates.coordinates[0] === null || locationData.coordinates.coordinates[1] === null) {
-          locationData.coordinates = null;
+        locationData.coordinates = null;
       }
       formData.append("location", JSON.stringify(locationData));
 
-      formData.append("rescueType", form.rescueType);
       if (form.additionalInfo) formData.append("additionalInfo", form.additionalInfo);
 
       if (form.image) formData.append("image", form.image);
@@ -489,8 +545,7 @@ const validateStep = useCallback((step) => {
         formData.append("kelurahan", form.reporterInfo.kelurahan || "");
         formData.append("kecamatan", form.reporterInfo.kecamatan || "");
       } else {
-
-        formData.append("name", form.reporterInfo.name); 
+        formData.append("name", form.reporterInfo.name);
         formData.append("phone", form.reporterInfo.phone);
         formData.append("address", form.reporterInfo.address || "");
         formData.append("rt", form.reporterInfo.rt || "");
@@ -502,18 +557,18 @@ const validateStep = useCallback((step) => {
       const headers = token ? { Authorization: `Bearer ${token}` } : {};
 
       for (let pair of formData.entries()) {
-          if (pair[0] === "image" || pair[0] === "video") {
-              console.log(pair[0], ":", pair[1].name);
-          } else if (pair[0] === "location") {
-              try {
-                  console.log(pair[0], ":", JSON.parse(pair[1]));
-              } catch (e) {
-                  console.log(pair[0], ":", pair[1]);
-              }
+        if (pair[0] === "image" || pair[0] === "video") {
+          console.log(pair[0], ":", pair[1].name);
+        } else if (pair[0] === "location" || pair[0] === "predictResult") {
+          try {
+            console.log(pair[0], ":", JSON.parse(pair[1]));
+          } catch (e) {
+            console.log(pair[0], ":", pair[1]);
           }
-          else {
-              console.log(pair[0], ":", pair[1]);
-          }
+        }
+        else {
+          console.log(pair[0], ":", pair[1]);
+        }
       }
 
       const response = await createReport(formData, headers);
@@ -523,23 +578,23 @@ const validateStep = useCallback((step) => {
       const whatsappLocation = {
         address: form.location.address,
         coordinates: {
-            type: "Point",
-            coordinates: [
-                form.location.longitude ? parseFloat(form.location.longitude) : null,
-                form.location.latitude ? parseFloat(form.location.latitude) : null,
-            ],
+          type: "Point",
+          coordinates: [
+            form.location.longitude ? parseFloat(form.location.longitude) : null,
+            form.location.latitude ? parseFloat(form.location.latitude) : null,
+          ],
         },
       };
 
       if (whatsappLocation.coordinates.coordinates[0] === null || whatsappLocation.coordinates.coordinates[1] === null || isNaN(whatsappLocation.coordinates.coordinates[0]) || isNaN(whatsappLocation.coordinates.coordinates[1])) {
-        whatsappLocation.coordinates = null; 
+        whatsappLocation.coordinates = null;
       }
-      
+
       const whatsappMessage = createReportWhatsAppMessage({
         reportId,
         title: form.title,
         description: form.description,
-        rescueType: form.rescueType,
+        rescueType: form.category ? form.category.replace(/_/g, ' ') : 'Tidak Diketahui',
         reporterName: form.reporterInfo.name,
         location: whatsappLocation,
       }, 'biasa');
@@ -552,11 +607,11 @@ const validateStep = useCallback((step) => {
 
       alert(
         `✅ Laporan rescue berhasil dikirim!\n\n` +
-          `ID Laporan: ${reportId}\n` +
-          `Mode: Standard Report\n` +
-          `Jenis: ${form.rescueType}\n\n` +
-          `Tim Damkar akan segera menindaklanjuti. Simpan ID laporan untuk tracking.\n\n` +
-          `📱 WhatsApp akan terbuka untuk konfirmasi laporan.`
+        `ID Laporan: ${reportId}\n` +
+        `Mode: Standard Report\n` +
+        `Jenis: ${form.category ? form.category.replace(/_/g, ' ') : 'Tidak Diketahui'}\n\n` +
+        `Tim Damkar akan segera menindaklanjuti. Simpan ID laporan untuk tracking.\n\n` +
+        `📱 WhatsApp akan terbuka untuk konfirmasi laporan.`
       );
 
       setForm({
@@ -567,9 +622,8 @@ const validateStep = useCallback((step) => {
           latitude: "",
           longitude: "",
         },
-        images: [],
+        image: null,
         video: null,
-        rescueType: "",
         additionalInfo: "",
         reporterInfo: {
           name: "",
@@ -580,17 +634,20 @@ const validateStep = useCallback((step) => {
           kelurahan: "",
           kecamatan: "",
         },
+        category: null,
+        predictResult: null,
       });
+      previewImages.forEach(p => URL.revokeObjectURL(p.url));
       setPreviewImages([]);
       setMLValidation(null);
-      setCurrentStep(1); 
+      setCurrentStep(1);
       setErrors({});
       setUserDataError(null);
       if (fileInputRef.current) {
-        fileInputRef.current.value = ""; 
+        fileInputRef.current.value = "";
       }
 
-      navigate("/"); 
+      navigate("/");
     } catch (err) {
       console.error("Error submitting standard report:", err);
 
@@ -621,10 +678,10 @@ const validateStep = useCallback((step) => {
     if (validateStep(currentStep)) {
       setCurrentStep(currentStep + 1);
     } else {
-        const firstErrorElement = document.querySelector(".border-red-500");
-        if (firstErrorElement) {
-            firstErrorElement.scrollIntoView({ behavior: "smooth", block: "center" });
-        }
+      const firstErrorElement = document.querySelector(".border-red-500");
+      if (firstErrorElement) {
+        firstErrorElement.scrollIntoView({ behavior: "smooth", block: "center" });
+      }
     }
   };
 
@@ -645,7 +702,7 @@ const validateStep = useCallback((step) => {
     fileInputRef,
     onInputChange: handleInputChange,
     onLocationChange: handleLocationChange,
-    onSubmit: handleSubmit, 
+    onSubmit: handleSubmit,
     getCurrentLocation: getCurrentLocation,
     removeImage: removeImage,
     applySuggestion: applySuggestion,

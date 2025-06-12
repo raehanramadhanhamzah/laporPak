@@ -303,32 +303,6 @@ export default function StandardForm({
                   <div className="space-y-4">
                     <div>
                       <label className="block text-sm font-medium text-gray-700 mb-2">
-                        Jenis Rescue/Penyelamatan *
-                      </label>
-                      <select
-                        name="rescueType"
-                        value={form.rescueType}
-                        onChange={onInputChange}
-                        className={`w-full px-3 py-2 lg:py-3 border rounded-md focus:outline-none focus:ring-2 focus:ring-green-500 text-sm lg:text-base ${
-                          errors.rescueType ? 'border-red-500' : 'border-gray-300'
-                        }`}
-                        aria-describedby={errors.rescueType ? "rescueType-error" : undefined}
-                        required
-                      >
-                        <option value="">Pilih jenis penyelamatan...</option>
-                        {rescueTypes.map((type) => (
-                          <option key={type.value} value={type.value}>
-                            {type.label}
-                          </option>
-                        ))}
-                      </select>
-                      {errors.rescueType && (
-                        <p id="rescueType-error" className="text-red-500 text-xs mt-1">{errors.rescueType}</p>
-                      )}
-                    </div>
-
-                    <div>
-                      <label className="block text-sm font-medium text-gray-700 mb-2">
                         Judul Laporan *
                       </label>
                       <input
