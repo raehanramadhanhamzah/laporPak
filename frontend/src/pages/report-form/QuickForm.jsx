@@ -111,13 +111,15 @@ export default function QuickForm({
               )}
 
               {mlValidation && (
-                <div className={`p-4 rounded-lg ${
-                  mlValidation.isEmergency
-                    ? 'bg-red-50 border border-red-200'
-                    : 'bg-green-50 border border-green-200'
-                }`}>
+                <div
+                  className={`p-4 rounded-lg ${
+                    mlValidation.isFire
+                      ? 'bg-red-50 border border-red-200'
+                      : 'bg-green-50 border border-green-200'
+                  }`}
+                >
                   <div className="flex items-start">
-                    {mlValidation.isEmergency ? (
+                    {mlValidation.isFire ? ( 
                       <AlertTriangle className="w-5 h-5 text-red-600 mr-2 mt-0.5 flex-shrink-0" />
                     ) : (
                       <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
@@ -132,7 +134,6 @@ export default function QuickForm({
                               <button
                                 key={index}
                                 type="button"
-                                onClick={() => applySuggestion(suggestion)}
                                 className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs hover:bg-blue-200 transition-colors"
                               >
                                 + {suggestion}
