@@ -392,7 +392,7 @@ export default function StandardForm({
                       Lokasi Kejadian
                     </h3>
     
-                    <div className="border-2 border-gray-300 rounded-lg overflow-hidden mb-3">
+                    <div className="border-2 border-gray-300 rounded-lg overflow-hidden mb-3" style={{zIndex: 1}}>
                       <MapContainer
                         center={
                           form.location.latitude && form.location.longitude
@@ -400,7 +400,8 @@ export default function StandardForm({
                             : [-5.1477, 119.4327] 
                         }
                         zoom={13}
-                        style={{ height: "250px", width: "100%" }}
+                        style={{ height: "250px", width: "100%",zIndex: 1,
+                          position: "relative" }}
                       >
                         <TileLayer
                           url="https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png"
@@ -604,18 +605,6 @@ export default function StandardForm({
         </div>
       </div>
 
-      <div className="fixed bottom-0 left-0 right-0 bg-red-500 text-white p-4 sm:hidden">
-        <button
-          onClick={() => {
-            if (confirm('Apakah ini situasi darurat yang mengancam nyawa? Anda akan dihubungkan ke 113.')) {
-              window.location.href = 'tel:113';
-            }
-          }}
-          className="w-full py-3 bg-red-600 rounded-lg font-bold text-center focus:outline-none focus:ring-2 focus:ring-red-300"
-        >
-          🚨 DARURAT? CALL 113 SEKARANG
-        </button>
-      </div>
 
       <div className="h-20 sm:h-0"></div>
     </div>
