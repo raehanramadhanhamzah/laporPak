@@ -41,6 +41,65 @@ export default function QuickFormPresenter() {
   const [userDataError, setUserDataError] = useState(null);
   const fileInputRef = useRef(null);
 
+  useEffect(() => {
+    const fetchAndSetUserData = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const user = localStorage.getItem("user");
+          const userDataFromLocalStorage = JSON.parse(user);
+          const userId = userDataFromLocalStorage.userId;
+
+          const responseData = await getUserDetail(userId);
+          const userProfile = responseData.user;
+
+          setForm((prevForm) => ({
+            ...prevForm,
+            reporterInfo: {
+              name: userProfile.name || "",
+              phone: userProfile.phone || "",
+              address: userProfile.address || "",
+              rt: userProfile.rt || "",
+              rw: userProfile.rw || "",
+              kelurahan: userProfile.kelurahan || "",
+              kecamatan: userProfile.kecamatan || "",
+            },
+          }));
+        } catch (error) {
+          console.error("Error fetching user data for form defaults:", error);
+          setUserDataError(
+            `Gagal memuat data profil: ${error.message || "Terjadi kesalahan."}`
+          );
+        }
+      }
+    };
+
+    fetchAndSetUserData();
+
+    const handleOnline = () => setIsOnline(true);
+    const handleOffline = () => setIsOnline(false);
+
+    window.addEventListener("online", handleOnline);
+    window.addEventListener("offline", handleOffline);
+
+    return () => {
+      window.removeEventListener("online", handleOnline);
+      window.removeEventListener("offline", handleOffline);
+      if (previewImage && previewImage.startsWith("blob:")) {
+        URL.revokeObjectURL(previewImage);
+      }
+      clearTimeout(validationTimeout);
+    };
+  }, [previewImage, validationTimeout]);
+
+  useEffect(() => {
+    return () => {
+      if (previewImage && previewImage.startsWith("blob:")) {
+        URL.revokeObjectURL(previewImage);
+      }
+    };
+  }, [previewImage]);
+
   const validatePhone = (phone) => {
     const phoneRegex = /^(\+62|62|0)[0-9]{9,13}$/;
     return phoneRegex.test(phone.replace(/\s|-/g, ""));
@@ -60,8 +119,7 @@ export default function QuickFormPresenter() {
   const sanitizeInput = (input) => {
     return input
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
-      .replace(/<[^>]*>/g, "")
-      .trim();
+      .replace(/[<>]/g, "");
   };
 
   useEffect(() => {
@@ -82,7 +140,11 @@ export default function QuickFormPresenter() {
       const token = localStorage.getItem("token");
       if (token) {
         try {
-          const userData = await getUserDetail("me");
+          const user = localStorage.getItem("user");
+          const userDataFromLocalStorage = JSON.parse(user);
+          const userId = userDataFromLocalStorage.userId;
+          const userData = await getUserDetail(userId);
+
           if (userData && userData.data) {
             setForm((prev) => ({
               ...prev,
@@ -106,61 +168,6 @@ export default function QuickFormPresenter() {
 
     loadUserData();
   }, []);
-
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation tidak didukung di browser ini.");
-      return;
-    }
-
-    setLocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setForm((prev) => ({
-          ...prev,
-          location: {
-            ...prev.location,
-            latitude: latitude.toString(),
-            longitude: longitude.toString(),
-          },
-        }));
-
-        fetch(
-          `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=YOUR_API_KEY`
-        )
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.results && data.results.length > 0) {
-              const address = data.results[0].formatted;
-              setForm((prev) => ({
-                ...prev,
-                location: {
-                  ...prev.location,
-                  address: address,
-                },
-              }));
-            }
-          })
-          .catch((error) => {
-            console.error("Error fetching address:", error);
-          })
-          .finally(() => {
-            setLocationLoading(false);
-          });
-      },
-      (error) => {
-        console.error("Error getting location:", error);
-        alert("Gagal mendapatkan lokasi. Pastikan GPS aktif dan izinkan akses lokasi.");
-        setLocationLoading(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      }
-    );
-  };
 
   const validateMLInput = useCallback((title, description, fireType) => {
     if (validationTimeout) {
@@ -290,15 +297,95 @@ export default function QuickFormPresenter() {
     }
   };
 
-  const handleLocationChange = (address, latitude, longitude) => {
-    setForm((prev) => ({
-      ...prev,
-      location: {
-        address: address || "",
-        latitude: latitude?.toString() || "",
-        longitude: longitude?.toString() || "",
+const handleLocationChange = useCallback(
+    async (lat, lng, addressFromMap = null) => {
+      setLocationLoading(true);
+      try {
+        let addressToSet = form.location.address; 
+        if (addressFromMap !== null) {
+          addressToSet = addressFromMap;
+        } else if (lat && lng) {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+          );
+          const data = await response.json();
+          addressToSet = data.display_name || "Alamat tidak ditemukan";
+        }
+
+        setForm((prev) => ({
+          ...prev,
+          location: {
+            ...prev.location,
+            latitude: lat,
+            longitude: lng,
+            address: addressToSet,
+          },
+        }));
+
+        if (errors.location) {
+          setErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.location;
+            return newErrors;
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching address:", error);
+        alert("Gagal mendapatkan alamat dari koordinat.");
+        setForm((prev) => ({
+          ...prev,
+          location: {
+            ...prev.location,
+            latitude: lat,
+            longitude: lng,
+            address: form.location.address || "Gagal mendapatkan alamat", 
+          },
+        }));
+      } finally {
+        setLocationLoading(false);
+      }
+    },
+    [errors, form.location.address]
+  );
+
+  const getCurrentLocation = () => {
+    setLocationLoading(true);
+
+    if (!navigator.geolocation) {
+      alert("Geolocation tidak didukung oleh browser ini");
+      setLocationLoading(false);
+      return;
+    }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        handleLocationChange(position.coords.latitude, position.coords.longitude);
       },
-    }));
+      (error) => {
+        let errorMessage = "Gagal mendapatkan lokasi: ";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += "Izin lokasi ditolak";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += "Informasi lokasi tidak tersedia";
+            break;
+          case error.TIMEOUT:
+            errorMessage += "Timeout mendapatkan lokasi";
+            break;
+          default:
+            errorMessage += "Error tidak diketahui";
+            break;
+        }
+        alert(errorMessage);
+        setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
   };
 
   const validateForm = () => {
@@ -403,14 +490,35 @@ export default function QuickFormPresenter() {
       const response = await createReport(formData, headers);
 
       const reportId = response.report_id || "UNKNOWN";
+
+      const whatsappLocation = {
+          address: form.location.address,
+          coordinates: {
+              type: "Point",
+              coordinates: [
+                  form.location.longitude ? parseFloat(form.location.longitude) : null,
+                  form.location.latitude ? parseFloat(form.location.latitude) : null,
+              ],
+          },
+      };
+
+      if (whatsappLocation.coordinates.coordinates[0] === null || whatsappLocation.coordinates.coordinates[1] === null || isNaN(whatsappLocation.coordinates.coordinates[0]) || isNaN(whatsappLocation.coordinates.coordinates[1])) {
+        whatsappLocation.coordinates = null; 
+      }
+
+      if(form.hasCasualties) {
+        form.urgencyLevel = "kritis (ada korban)"
+      }
       
       const whatsappMessage = createReportWhatsAppMessage({
         reportId,
         title: form.title,
+        description: form.description,
         urgencyLevel: form.urgencyLevel,
+        fireType: form.fireType,
         reporterName: form.reporterInfo.name,
-        phone: form.reporterInfo.phone,
-        location: form.location
+        location: whatsappLocation,
+        hasCasualties: form.hasCasualties,
       }, 'darurat');
 
       try {

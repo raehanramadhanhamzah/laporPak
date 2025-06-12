@@ -61,10 +61,42 @@ export default function StandardFormPresenter() {
     return input
       .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
       .replace(/<[^>]*>/g, "")
-      .trim();
   };
 
   useEffect(() => {
+    const fetchAndSetUserData = async () => {
+      const token = localStorage.getItem("token");
+      if (token) {
+        try {
+          const user = localStorage.getItem("user");
+          const userDataFromLocalStorage = JSON.parse(user);
+          const userId = userDataFromLocalStorage.userId;
+
+          const responseData = await getUserDetail(userId);
+          const userProfile = responseData.user;
+
+          setForm((prevForm) => ({
+            ...prevForm,
+            reporterInfo: {
+              name: userProfile.name || "",
+              phone: userProfile.phone || "",
+              address: userProfile.address || "",
+              rt: userProfile.rt || "",
+              rw: userProfile.rw || "",
+              kelurahan: userProfile.kelurahan || "",
+              kecamatan: userProfile.kecamatan || "",
+            },
+          }));
+        } catch (error) {
+          console.error("Error fetching user data for form defaults:", error);
+          setUserDataError(
+            `Gagal memuat data profil: ${error.message || "Terjadi kesalahan."}`
+          );
+        }
+      }
+    };
+    fetchAndSetUserData();
+
     const handleOnline = () => setIsOnline(true);
     const handleOffline = () => setIsOnline(false);
 
@@ -76,91 +108,6 @@ export default function StandardFormPresenter() {
       window.removeEventListener("offline", handleOffline);
     };
   }, []);
-
-  useEffect(() => {
-    const loadUserData = async () => {
-      const token = localStorage.getItem("token");
-      if (token) {
-        try {
-          const userData = await getUserDetail("me");
-          if (userData && userData.data) {
-            setForm((prev) => ({
-              ...prev,
-              reporterInfo: {
-                name: userData.data.name || "",
-                phone: userData.data.phone || "",
-                address: userData.data.address || "",
-                rt: userData.data.rt || "",
-                rw: userData.data.rw || "",
-                kelurahan: userData.data.kelurahan || "",
-                kecamatan: userData.data.kecamatan || "",
-              },
-            }));
-          }
-        } catch (err) {
-          console.error("Error loading user data:", err);
-          setUserDataError("Gagal memuat data pengguna. Silakan isi manual.");
-        }
-      }
-    };
-
-    loadUserData();
-  }, []);
-
-  const getCurrentLocation = () => {
-    if (!navigator.geolocation) {
-      alert("Geolocation tidak didukung di browser ini.");
-      return;
-    }
-
-    setLocationLoading(true);
-    navigator.geolocation.getCurrentPosition(
-      (position) => {
-        const { latitude, longitude } = position.coords;
-        setForm((prev) => ({
-          ...prev,
-          location: {
-            ...prev.location,
-            latitude: latitude.toString(),
-            longitude: longitude.toString(),
-          },
-        }));
-
-        fetch(
-          `https://api.opencagedata.com/geocode/v1/json?q=${latitude}+${longitude}&key=YOUR_API_KEY`
-        )
-          .then((response) => response.json())
-          .then((data) => {
-            if (data.results && data.results.length > 0) {
-              const address = data.results[0].formatted;
-              setForm((prev) => ({
-                ...prev,
-                location: {
-                  ...prev.location,
-                  address: address,
-                },
-              }));
-            }
-          })
-          .catch((error) => {
-            console.error("Error fetching address:", error);
-          })
-          .finally(() => {
-            setLocationLoading(false);
-          });
-      },
-      (error) => {
-        console.error("Error getting location:", error);
-        alert("Gagal mendapatkan lokasi. Pastikan GPS aktif dan izinkan akses lokasi.");
-        setLocationLoading(false);
-      },
-      {
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 60000,
-      }
-    );
-  };
 
   const validateMLInput = useCallback((title, description, type) => {
     if (validationTimeout) {
@@ -245,29 +192,39 @@ export default function StandardFormPresenter() {
     }));
   };
 
-  const validateStep = useCallback((step) => {
+const validateStep = useCallback((step) => {
     const newErrors = {};
-
+    const token = localStorage.getItem("token"); 
+    
     if (step === 1) {
-      if (!form.title.trim()) newErrors.title = "Judul laporan wajib diisi";
-      if (!form.description.trim()) newErrors.description = "Deskripsi wajib diisi";
-      if (!form.rescueType) newErrors.rescueType = "Jenis rescue wajib dipilih";
-    } else if (step === 2) {
-      if (!form.location.address.trim()) {
-        newErrors.locationAddress = "Alamat lokasi wajib diisi atau klik pada peta.";
-      }
-    } else if (step === 3) {
-      if (!form.reporterInfo.name.trim()) newErrors.reporterName = "Nama pelapor wajib diisi";
-      if (!form.reporterInfo.phone.trim()) {
-        newErrors.reporterPhone = "Nomor telepon wajib diisi";
-      } else if (!validatePhone(form.reporterInfo.phone)) {
-        newErrors.reporterPhone = "Format nomor telepon tidak valid";
-      }
-      
-      const token = localStorage.getItem("token");
       if (!token) {
-        if (!form.reporterInfo.kelurahan.trim()) newErrors.reporterKelurahan = "Kelurahan wajib diisi";
-        if (!form.reporterInfo.kecamatan.trim()) newErrors.reporterKecamatan = "Kecamatan wajib diisi";
+        if (!form.reporterInfo.name?.trim()) newErrors.reporterName = "Nama wajib diisi";
+        if (!form.reporterInfo.phone?.trim()) {
+          newErrors.reporterPhone = "Nomor telepon wajib diisi";
+        } else if (!validatePhone(form.reporterInfo.phone)) {
+          newErrors.reporterPhone = "Format nomor telepon tidak valid";
+        }
+        if (!form.reporterInfo.address?.trim()) newErrors.reporterAddress = "Alamat wajib diisi";
+        if (!form.reporterInfo.kelurahan?.trim()) newErrors.reporterKelurahan = "Kelurahan wajib diisi";
+        if (!form.reporterInfo.kecamatan?.trim()) newErrors.reporterKecamatan = "Kecamatan wajib diisi";
+      }
+    }
+    if (step === 2) {
+      if (!form.rescueType) newErrors.rescueType = "Jenis rescue wajib dipilih";
+      if (!form.title.trim()) newErrors.title = "Judul laporan wajib diisi";
+      if (!form.description.trim()) {
+        newErrors.description = "Deskripsi kejadian wajib diisi";
+      } else if (form.description.trim().length < 20) {
+        newErrors.description = "Deskripsi terlalu singkat (minimal 20 karakter)";
+      }
+    }
+    if (step === 3) {
+      if (!form.location.address.trim() && (!form.location.latitude || !form.location.longitude)) {
+        newErrors.location = "Alamat lokasi wajib diisi";
+        newErrors.coordinates = "Atau pilih lokasi pada peta";
+      }
+      if (form.location.address.trim() && (!form.location.latitude || !form.location.longitude)) {
+        newErrors.coordinates = "Koordinat belum dipilih pada peta. Harap klik pada peta.";
       }
     }
 
@@ -383,23 +340,96 @@ export default function StandardFormPresenter() {
     }
   };
 
-  const handleLocationChange = (address, latitude, longitude) => {
-    setForm((prev) => ({
-      ...prev,
-      location: {
-        address: address || "",
-        latitude: latitude?.toString() || "",
-        longitude: longitude?.toString() || "",
-      },
-    }));
+  const handleLocationChange = useCallback(
+    async (lat, lng, addressFromMap = null) => {
+      setLocationLoading(true);
+      try {
+        let addressToSet = form.location.address;
+        if (addressFromMap !== null) {
+          addressToSet = addressFromMap;
+        } else if (lat && lng) {
+          const response = await fetch(
+            `https://nominatim.openstreetmap.org/reverse?format=jsonv2&lat=${lat}&lon=${lng}`
+          );
+          const data = await response.json();
+          addressToSet = data.display_name || "Alamat tidak ditemukan";
+        }
 
-    if (errors.locationAddress) {
-      setErrors((prev) => {
-        const newErrors = { ...prev };
-        delete newErrors.locationAddress;
-        return newErrors;
-      });
+        setForm((prev) => ({
+          ...prev,
+          location: {
+            ...prev.location,
+            latitude: lat,
+            longitude: lng,
+            address: addressToSet,
+          },
+        }));
+
+        if (errors.location || errors.coordinates) {
+          setErrors((prev) => {
+            const newErrors = { ...prev };
+            delete newErrors.location;
+            delete newErrors.coordinates;
+            return newErrors;
+          });
+        }
+      } catch (error) {
+        console.error("Error fetching address:", error);
+        alert("Gagal mendapatkan alamat dari koordinat.");
+        setForm((prev) => ({
+          ...prev,
+          location: {
+            ...prev.location,
+            latitude: lat,
+            longitude: lng,
+            address: form.location.address || "Gagal mendapatkan alamat", 
+          },
+        }));
+      } finally {
+        setLocationLoading(false);
+      }
+    },
+    [errors, form.location.address] 
+  );
+
+  const getCurrentLocation = () => {
+    setLocationLoading(true);
+
+    if (!navigator.geolocation) {
+      alert("Geolocation tidak didukung oleh browser ini");
+      setLocationLoading(false);
+      return;
     }
+
+    navigator.geolocation.getCurrentPosition(
+      (position) => {
+        handleLocationChange(position.coords.latitude, position.coords.longitude);
+      },
+      (error) => {
+        let errorMessage = "Gagal mendapatkan lokasi: ";
+        switch (error.code) {
+          case error.PERMISSION_DENIED:
+            errorMessage += "Izin lokasi ditolak";
+            break;
+          case error.POSITION_UNAVAILABLE:
+            errorMessage += "Informasi lokasi tidak tersedia";
+            break;
+          case error.TIMEOUT:
+            errorMessage += "Timeout mendapatkan lokasi";
+            break;
+          default:
+            errorMessage += "Error tidak diketahui";
+            break;
+        }
+        alert(errorMessage);
+        setLocationLoading(false);
+      },
+      {
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 60000,
+      }
+    );
   };
 
   const handleSubmit = async (e) => {
@@ -489,14 +519,29 @@ export default function StandardFormPresenter() {
       const response = await createReport(formData, headers);
 
       const reportId = response.report_id || "UNKNOWN";
+
+      const whatsappLocation = {
+        address: form.location.address,
+        coordinates: {
+            type: "Point",
+            coordinates: [
+                form.location.longitude ? parseFloat(form.location.longitude) : null,
+                form.location.latitude ? parseFloat(form.location.latitude) : null,
+            ],
+        },
+      };
+
+      if (whatsappLocation.coordinates.coordinates[0] === null || whatsappLocation.coordinates.coordinates[1] === null || isNaN(whatsappLocation.coordinates.coordinates[0]) || isNaN(whatsappLocation.coordinates.coordinates[1])) {
+        whatsappLocation.coordinates = null; 
+      }
       
       const whatsappMessage = createReportWhatsAppMessage({
         reportId,
         title: form.title,
+        description: form.description,
         rescueType: form.rescueType,
         reporterName: form.reporterInfo.name,
-        phone: form.reporterInfo.phone,
-        location: form.location
+        location: whatsappLocation,
       }, 'biasa');
 
       try {

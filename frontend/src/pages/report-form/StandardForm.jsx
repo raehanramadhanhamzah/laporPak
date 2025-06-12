@@ -137,7 +137,6 @@ export default function StandardForm({
                           {mlValidation.suggestions.map((suggestion, index) => (
                             <button
                               key={index}
-                              onClick={() => applySuggestion(suggestion)}
                               className="bg-blue-100 text-blue-800 px-2 py-1 rounded text-xs hover:bg-blue-200 transition-colors"
                             >
                               + {suggestion}
