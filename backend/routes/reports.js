@@ -5,6 +5,7 @@ import {
   updateStatusReportHandler,
   deleteReportByIdHandler,
 } from "../handler/reportHandler.js";
+import { predictCategoryHandler } from "../handler/predictCategoryHandler.js";
 import { PATH } from "../config/config.js";
 import { onlyAdminOrPetugas } from "../utils/index.js";
 const routesReports = [
@@ -59,6 +60,10 @@ const routesReports = [
       pre: [{ method: onlyAdminOrPetugas }],
     },
   },
-
+  {
+    method: "POST",
+    path: `${PATH.REPORTS}/predict-category`,
+    handler: predictCategoryHandler,
+  },
 ];
 export default routesReports;

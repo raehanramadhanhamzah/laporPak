@@ -6,8 +6,8 @@ import { CONFIG } from "../config/config.js";
 async function seedAll() {
   try {
     await mongoose.connect("mongodb+srv://raehanramadh27:QsiMhB7TbuwQqEDz@laporpak.vldznsh.mongodb.net/LaporPakDB?retryWrites=true&w=majority&appName=LaporPak");
-    // await seedAdmin();
-    // await seedPetugas();
+    await seedAdmin();
+    await seedPetugas();
     await seedReports();
     await mongoose.disconnect();
   } catch (error) {

@@ -135,14 +135,14 @@ export async function updateProfileByIdHandler(request, h) {
         })
         .code(404);
     }
-    user.name = name || user.name;
-    user.email = email || user.email;
-    user.phone = phone || user.phone;
-    user.address = address || user.address;
-    user.rt = rt || user.rt;
-    user.rw = rw || user.rw;
-    user.kelurahan = kelurahan || user.kelurahan;
-    user.kecamatan = kecamatan || user.kecamatan;
+    user.name = name !== undefined ? name : user.name;
+    user.phone = phone !== undefined ? phone : user.phone;
+    user.email = email !== undefined ? email : user.email;
+    user.address = address !== undefined ? address : user.address;
+    user.rt = rt !== undefined ? rt : user.rt;
+    user.rw = rw !== undefined ? rw : user.rw;
+    user.kelurahan = kelurahan !== undefined ? kelurahan : user.kelurahan;
+    user.kecamatan = kecamatan !== undefined ? kecamatan : user.kecamatan;
     user.updatedAt = new Date();
 
     await user.save();
