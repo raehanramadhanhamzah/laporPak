@@ -6,29 +6,22 @@ export async function getAllUsersHandler(request, h) {
   try {
     const { role, title, page, limit } = request.query;
 
-    let query = {};
+    const query = {};
+    if (role) query.role = role;
+    if (title) query.title = { $regex: title, $options: "i" };
 
-    if (role) {
-      query.role = role;
-    }
-
-    if (title) {
-      query.title = { $regex: title, $options: "i" };
-    }
-
-    let reports;
+    let users;
     let pagination = null;
 
-    if (!page || !limit) {
-      reports = await Report.find(query);
+    if (page === undefined || limit === undefined) {
+      users = await User.find(query);
     } else {
       const p = parseInt(page);
       const l = parseInt(limit);
       const skip = (p - 1) * l;
 
-      reports = await Report.find(query).skip(skip).limit(l);
-
-      const totalUsers = await Report.countDocuments(query);
+      users = await User.find(query).skip(skip).limit(l);
+      const totalUsers = await User.countDocuments(query);
 
       pagination = {
         currentPage: p,
@@ -42,15 +35,15 @@ export async function getAllUsersHandler(request, h) {
       .response({
         status: "success",
         message:
-          reports.length > 0
-            ? "Berhasil mendapatkan Laporan"
-            : "Report tidak ditemukan",
-        listUser: reports,
+          users.length > 0
+            ? "Berhasil mendapatkan pengguna"
+            : "Pengguna tidak ditemukan",
+        listUser: users,
         pagination,
       })
       .code(200);
   } catch (error) {
-    console.error("gagal getAllUsersHandler:", error);
+    console.error("Gagal getAllUsersHandler:", error);
     return h.response({ error: error.message }).code(500);
   }
 }

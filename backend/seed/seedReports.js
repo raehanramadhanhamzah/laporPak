@@ -231,6 +231,7 @@ export async function seedReports() {
         fireType: "ruko_toko",
         hasCasualties: false,
         urgencyLevel: "tinggi",
+        category: "kebakaran",
         photoUrl:
           "https://res.cloudinary.com/laporpakimage/image/upload/v1749636468/reports/fire6.jpg",
         reporterInfo: {
@@ -271,6 +272,7 @@ export async function seedReports() {
         fireType: "gedung_bertingkat",
         hasCasualties: true,
         urgencyLevel: "kritis",
+        category: "kebakaran",
         photoUrl:
           "https://res.cloudinary.com/laporpakimage/image/upload/v1749636468/reports/fire7.jpg",
         reporterInfo: {
@@ -311,6 +313,7 @@ export async function seedReports() {
         fireType: "hutan_lahan",
         hasCasualties: false,
         urgencyLevel: "tinggi",
+        category: "kebakaran",
         photoUrl:
           "https://res.cloudinary.com/laporpakimage/image/upload/v1749636468/reports/fire8.jpg",
         reporterInfo: {
@@ -355,6 +358,7 @@ export async function seedReports() {
         fireType: "lainnya",
         hasCasualties: true,
         urgencyLevel: "kritis",
+        category: "kebakaran",
         photoUrl:
           "https://res.cloudinary.com/laporpakimage/image/upload/v1749636468/reports/fire9.jpg",
         reporterInfo: {
@@ -399,6 +403,7 @@ export async function seedReports() {
         fireType: "pabrik_industri",
         hasCasualties: true,
         urgencyLevel: "kritis",
+        category: "kebakaran",
         photoUrl:
           "https://res.cloudinary.com/laporpakimage/image/upload/v1749636468/reports/fire10.jpg",
         reporterInfo: {

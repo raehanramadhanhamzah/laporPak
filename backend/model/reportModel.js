@@ -57,7 +57,7 @@ const reportSchema = new mongoose.Schema(
     },
     reporterInfo: {
       name: { type: String },
-      phone: { type: String , unique: true},
+      phone: { type: String },
       address: { type: String },
       rt: { type: String },
       rw: { type: String },
