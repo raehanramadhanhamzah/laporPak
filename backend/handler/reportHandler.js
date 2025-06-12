@@ -195,7 +195,7 @@ export async function getAllReportsHandler(request, h) {
     let pagination = null;
 
     if (!page || !limit) {
-      reports = await Report.find(query).populate("reporterId", "name");
+      reports = await Report.find(query).populate("reporterId", "name email phone");
     } else {
       const p = parseInt(page);
       const l = parseInt(limit);
@@ -204,7 +204,7 @@ export async function getAllReportsHandler(request, h) {
       reports = await Report.find(query)
         .skip(skip)
         .limit(l)
-        .populate("reporterId", "name");
+        .populate("reporterId", "name email phone");
 
       const totalReports = await Report.countDocuments(query);
       pagination = {

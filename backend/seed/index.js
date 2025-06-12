@@ -1,12 +1,16 @@
 import mongoose from "mongoose";
 import { seedAdmin } from "./seedAdmin.js";
 import { seedPetugas } from "./seedPetugas.js";
+import { seedReports } from "./seedReports.js";
 import { CONFIG } from "../config/config.js";
 async function seedAll() {
   try {
-    await mongoose.connect(CONFIG.DATABASE_URL);
-    await seedAdmin();
-    await seedPetugas();
+    console.log("Connecting to DB:", CONFIG.DATABASE_URL);
+
+    await mongoose.connect("mongodb+srv://raehanramadh27:QsiMhB7TbuwQqEDz@laporpak.vldznsh.mongodb.net/LaporPakDB?retryWrites=true&w=majority&appName=LaporPak");
+    // await seedAdmin();
+    // await seedPetugas();
+    await seedReports();
     await mongoose.disconnect();
   } catch (error) {
     console.error("Seed error:", error);

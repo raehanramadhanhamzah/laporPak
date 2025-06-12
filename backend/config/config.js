@@ -18,7 +18,6 @@ export const PATH = {
   REGISTER: "/api/register",
   USERS: "/api/users",
   STAFF: "/api/staff",
-  
   REPORTS: "/api/reports",
 };
 
