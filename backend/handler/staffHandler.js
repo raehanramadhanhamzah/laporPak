@@ -75,7 +75,7 @@ export async function createStaffHandler(request, h) {
 export async function updateStaffByIdHandler(request, h) {
   try {
     const userId = request.params.id;
-    const { name, phone, address, rt, rw, kelurahan, kecamatan } =
+    const { name, phone, email, address, rt, rw, kelurahan, kecamatan } =
       request.payload;
 
     const user = await User.findById(userId);
@@ -116,14 +116,15 @@ export async function updateStaffByIdHandler(request, h) {
         .code(409);
     }
 
+    user.updatedAt = new Date();
     user.name = name;
     user.phone = phone;
-    user.address = address || null;
-    user.rt = rt || null;
-    user.rw = rw || null;
-    user.kelurahan = kelurahan || null;
-    user.kecamatan = kecamatan || null;
-    user.updatedAt = new Date();
+    user.email = email !== undefined ? email : user.email;
+    user.address = address !== undefined ? address : user.address;
+    user.rt = rt !== undefined ? rt : user.rt;
+    user.rw = rw !== undefined ? rw : user.rw;
+    user.kelurahan = kelurahan !== undefined ? kelurahan : user.kelurahan;
+    user.kecamatan = kecamatan !== undefined ? kecamatan : user.kecamatan;
 
     await user.save();
 
