@@ -5,8 +5,6 @@ import { seedReports } from "./seedReports.js";
 import { CONFIG } from "../config/config.js";
 async function seedAll() {
   try {
-    console.log("Connecting to DB:", CONFIG.DATABASE_URL);
-
     await mongoose.connect("mongodb+srv://raehanramadh27:QsiMhB7TbuwQqEDz@laporpak.vldznsh.mongodb.net/LaporPakDB?retryWrites=true&w=majority&appName=LaporPak");
     // await seedAdmin();
     // await seedPetugas();
