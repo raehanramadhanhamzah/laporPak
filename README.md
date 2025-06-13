@@ -117,7 +117,7 @@ Buat file `.env` di folder backend:
 ```env
 HOST=localhost
 PORT=3000
-MONGODB_URI=mongodb+srv://<username>:<password>@cluster.mongodb.net/LaporPakDB
+DATABASE_URL=mongodb+srv://<username>:<password>@cluster.mongodb.net/LaporPakDB
 JWT_SECRET=your_super_secret_jwt_key_here
 CLOUDINARY_CLOUD_NAME=your_cloud_name
 CLOUDINARY_API_KEY=your_api_key
