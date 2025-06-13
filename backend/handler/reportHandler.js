@@ -107,14 +107,6 @@ export async function createReportHandler(request, h) {
       const isMissingCommon = !name || !phone;
 
       if (reportType === "biasa") {
-        if (!rescueType) {
-          return h
-            .response({
-              status: "fail",
-              message: "Jenis penyelamatan wajib diisi.",
-            })
-            .code(400);
-        }
         if (isMissingCommon || !address || !kelurahan || !kecamatan) {
           return h
             .response({

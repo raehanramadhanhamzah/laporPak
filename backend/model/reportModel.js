@@ -85,7 +85,7 @@ const quickReportSchema = new mongoose.Schema({
 });
 
 const standardReportSchema = new mongoose.Schema({
-  rescueType: { type: String, required: true },
+  rescueType: { type: String, default: null },
   additionalInfo: { type: String, default: null },
 });
 
