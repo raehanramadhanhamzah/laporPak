@@ -1,69 +1,35 @@
-import { HashRouter as Router, Routes, Route, useLocation } from "react-router-dom";
-import PrivateRoute from "./routes/PrivateRoute";
-import Navbar from "./components/Navbar";
-import Login from "./pages/auth/login/LoginPresenter";
-import Register from "./pages/auth/register/RegisterPresenter";
-import Homepage from "./pages/homepage/Homepage";
-import MyReports from "./pages/user/MyReports";
-import Profile from "./pages/user/Profile";
-
-import AdminRoute from "./routes/AdminRoute";
-import AdminDashboard from "./pages/admin/AdminDashboard";
-
-import StaffRoute from "./routes/StaffRoute";
-import StaffDashboard from "./pages/staff/StaffDashboard";
-
-import StandardReportForm from "./pages/report-form/StandardFormPresenter";
-import QuickReportForm from "./pages/report-form/QuickFormPresenter";
-
-import About from "./pages/about/About";
-
-import "leaflet/dist/leaflet.css";
-
-function AppContent() {
-  const location = useLocation();
-  const isAdminRoute = location.pathname.startsWith('/admin');
-  const isStaffRoute = location.pathname.startsWith('/staff');
-
-  return (
-    <>
-      {!isAdminRoute && !isStaffRoute && <Navbar />}
-      <Routes>
-        <Route path="/" element={<Homepage />}/>
-        <Route path="/login" element={<Login />} />
-        <Route path="/register" element={<Register />} />
-        <Route path="/about" element={<About />} />
-        
-        <Route path="/reports/quick" element={<QuickReportForm />} />
-        <Route path="/reports/standard" element={<StandardReportForm />} />
-        
-        <Route element={<PrivateRoute />}>
-          <Route path="/reports/quick/protected" element={<QuickReportForm />} />
-          <Route path="/reports/standard/protected" element={<StandardReportForm />} />
-          <Route path="/my-reports" element={<MyReports />} />
-          <Route path="/profile" element={<Profile />} />
-        </Route>
-
-        <Route element={<AdminRoute />}>
-          <Route path="/admin" element={<AdminDashboard />} />
-        </Route>
-
-        <Route element={<StaffRoute />}>
-          <Route path="/staff" element={<StaffDashboard />} />
-        </Route>
-      </Routes>
-    </>
-  );
-}
+import { useState } from 'react'
+import reactLogo from './assets/react.svg'
+import viteLogo from '/vite.svg'
+import './App.css'
 
 function App() {
   const [count, setCount] = useState(0)
 
   return (
-    <Router>
-      <AppContent />
-    </Router>
-  );
+    <>
+      <div>
+        <a href="https://vite.dev" target="_blank">
+          <img src={viteLogo} className="logo" alt="Vite logo" />
+        </a>
+        <a href="https://react.dev" target="_blank">
+          <img src={reactLogo} className="logo react" alt="React logo" />
+        </a>
+      </div>
+      <h1>Vite + React</h1>
+      <div className="card">
+        <button onClick={() => setCount((count) => count + 1)}>
+          count is {count}
+        </button>
+        <p>
+          Edit <code>src/App.jsx</code> and save to test HMR
+        </p>
+      </div>
+      <p className="read-the-docs">
+        Click on the Vite and React logos to learn more
+      </p>
+    </>
+  )
 }
 
-export default App;
+export default App
