@@ -248,7 +248,12 @@ API.interceptors.request.use((config) => {
 export default API;
 ```
 
-#### 3.1 Jalankan Frontend
+#### 3.1 Install Dependencies
+```bash
+npm install
+```
+
+#### 3.2 Jalankan Frontend
 ```bash
 npm run dev
 ```
@@ -354,4 +359,4 @@ python deploy.py
 
 Tim LaporPak - CC25-CF110
 
-Project Link: [https://github.com/laporpak/laporpak](https://github.com/laporpak/laporpak)
+Project Link: [https://github.com/itsdccal/laporPak](https://github.com/itsdccal/laporPak)
