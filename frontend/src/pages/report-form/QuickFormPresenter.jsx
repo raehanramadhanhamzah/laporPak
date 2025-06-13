@@ -174,7 +174,7 @@ export default function QuickFormPresenter() {
           predictResult: { status: "error", message: "System error calling backend for prediction" },
         }));
       }
-    }, 3000);
+    }, 1000);
 
     setValidationTimeout(timeout);
   }, [validationTimeout]);

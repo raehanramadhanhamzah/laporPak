@@ -151,6 +151,13 @@ export default function StandardFormPresenter() {
             category: predictedCategoryName, 
             predictResult: mlResult, 
           }));
+
+          if (predictedCategoryName === "kebakaran") {
+            setForm(prev => ({
+              ...prev,
+              redirectToQuickReport: true 
+            }));
+          }
         } else {
           setMLValidation({
             isRescue: false,
@@ -178,7 +185,7 @@ export default function StandardFormPresenter() {
           predictResult: { status: "error", message: "System error calling backend for prediction" },
         }));
       }
-    }, 3000);
+    }, 1000);
 
     setValidationTimeout(timeout);
   }, [validationTimeout]); 
@@ -212,18 +219,6 @@ export default function StandardFormPresenter() {
     if (fileInputRef.current) {
       fileInputRef.current.value = "";
     }
-  };
-
-  const applySuggestion = (suggestion) => {
-    const lowerSuggestion = suggestion.toLowerCase();
-    if (lowerSuggestion.includes('kebakaran')) {
-        alert("Laporan ini terindikasi kebakaran. Silakan buat 'Laporan Darurat' untuk kasus kebakaran.");
-    }
-
-    setMLValidation(prev => ({
-      ...prev,
-      suggestions: prev.suggestions.filter(s => s !== suggestion)
-    }));
   };
 
   const validateStep = useCallback((step) => {
@@ -705,7 +700,6 @@ export default function StandardFormPresenter() {
     onSubmit: handleSubmit,
     getCurrentLocation: getCurrentLocation,
     removeImage: removeImage,
-    applySuggestion: applySuggestion,
     nextStep: nextStep,
     prevStep: prevStep,
   };
