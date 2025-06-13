@@ -3,6 +3,7 @@ import { MapContainer, TileLayer, Marker, useMapEvents } from "react-leaflet";
 import L from "leaflet";
 import { Shield, ArrowLeft, MapPin, Users, Camera, CheckCircle, AlertTriangle, Upload, FileText, X, AlertCircle } from 'lucide-react';
 import "leaflet/dist/leaflet.css";
+import { useNavigate } from "react-router-dom";
 
 delete L.Icon.Default.prototype._getIconUrl;
 L.Icon.Default.mergeOptions({
@@ -27,14 +28,9 @@ function LocationPicker({ onChange, position }) {
   return position ? <Marker position={position} /> : null;
 }
 
-const rescueTypes = [
-  { value: 'evakuasi_penyelamatan_hewan', label: 'Evakuasi/Penyelamatan Hewan' },
-  { value: 'kebakaran', label: 'Kebakaran' },
-  { value: 'layanan_lingkungan_dan_fasilitas_umum', label: 'Layanan Lingkungan & Fasilitas Umum' },
-  { value: 'penyelamatan_non_hewan_dan_bantuan_teknis', label: 'Penyelamatan Non Hewan & Bantuan Teknis' },
-];
-
 export default function StandardForm({
+  navigate = useNavigate(),
+
   form,
   previewImages,
   mlValidation,
@@ -49,7 +45,6 @@ export default function StandardForm({
   onSubmit,
   getCurrentLocation,
   removeImage,
-  applySuggestion,
   nextStep,
   prevStep,
 }) {
@@ -142,6 +137,17 @@ export default function StandardForm({
                               + {suggestion}
                             </button>
                           ))}
+
+                          {form.category === "kebakaran" && (
+                            <div className="mt-4">
+                              <button
+                                onClick={() => navigate("/reports/quick")}
+                                className="bg-red-600 hover:bg-red-700 text-white text-sm font-semibold px-4 py-2 rounded-md transition-colors"
+                              >
+                                Segera Laporkan Kebakaran
+                              </button>
+                            </div>
+                          )}
                         </div>
                       </div>
                     )}

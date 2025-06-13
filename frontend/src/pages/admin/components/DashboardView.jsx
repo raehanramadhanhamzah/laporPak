@@ -446,7 +446,15 @@ const getDisplayLocation = (report) => {
                       <div>
                         <label className="block text-xs font-medium text-red-700 mb-1">Jenis Kejadian</label>
                         <p className="text-sm text-red-900">
-                          {selectedReport.incidentType || 'Kebakaran'}
+                        {selectedReport.category === 'evakuasi_penyelamatan_hewan'
+                            ? 'Evakuasi/Penyelamatan Hewan'
+                            : selectedReport.category === 'kebakaran'
+                            ? 'Kebakaran'
+                            : selectedReport.category === 'layanan_lingkungan_dan_fasilitas_umum'
+                            ? 'Layanan Lingkungan & Fasilitas Umum'
+                            : selectedReport.category === 'penyelamatan_non_hewan_dan_bantuan_teknis'
+                            ? 'Penyelamatan Non Hewan & Bantuan Teknis'
+                            : 'Kebakaran'}
                         </p>
                       </div>
 

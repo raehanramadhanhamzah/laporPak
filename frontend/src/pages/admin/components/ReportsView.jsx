@@ -9,7 +9,8 @@ import {
   getAllReports,
   createReport,
   updateReportStatus,
-  deleteReport
+  deleteReport,
+  predictedCategory
 } from '../../../services/api';
 
 delete L.Icon.Default.prototype._getIconUrl;
@@ -48,13 +49,6 @@ const fireTypes = [
   { value: 'lainnya', label: 'Lainnya' }
 ];
 
-const rescueTypes = [
-  { value: 'evakuasi_penyelamatan_hewan', label: 'Evakuasi/Penyelamatan Hewan' },
-  { value: 'kebakaran', label: 'Kebakaran' },
-  { value: 'layanan_lingkungan_dan_fasilitas_umum', label: 'Layanan Lingkungan & Fasilitas Umum' },
-  { value: 'penyelamatan_non_hewan_dan_bantuan_teknis', label: 'Penyelamatan Non Hewan & Bantuan Teknis' },
-];
-
 const ReportsView = () => {
   const [reportsList, setReportsList] = useState([]);
   const [isLoading, setIsLoading] = useState(false);
@@ -77,6 +71,9 @@ const ReportsView = () => {
   const videoInputRef = useRef(null);
   const [locationLoading, setLocationLoading] = useState(false);
 
+  const [mlValidation, setMLValidation] = useState(null);
+  const [validationTimeout, setValidationTimeout] = useState(null);
+  
   const [reportForm, setReportForm] = useState({
     title: '',
     description: '',
@@ -99,8 +96,11 @@ const ReportsView = () => {
     fireType: '',
     hasCasualties: false,
     urgencyLevel: 'rendah',
-    rescueType: '',
+    predictResult: null,
+    reportType: "biasa",
+    category: null,
     additionalInfo: '',
+    rescueType: '',
   });
 
   const fetchReports = useCallback(async () => {
@@ -264,6 +264,12 @@ const filteredReports = reportsList.filter(report => {
     }
   };
 
+  const sanitizeInput = (input) => {
+    return input
+      .replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, "")
+      .replace(/<[^>]*>/g, "")
+  };
+
   const handleAddReportClick = () => {
     setReportForm({
       title: '',
@@ -287,8 +293,11 @@ const filteredReports = reportsList.filter(report => {
       fireType: '',
       hasCasualties: false,
       urgencyLevel: 'rendah',
-      rescueType: '',
+      predictResult: null,
+      reportType: "biasa",
+      category: null,
       additionalInfo: '',
+      rescueType: '',
     });
     setSelectedReportType('');
     setPreviewImage(null);
@@ -335,12 +344,19 @@ const filteredReports = reportsList.filter(report => {
         [name]: type === "checkbox" ? checked : value,
       }));
     }
+
     if (formErrors[name]) {
       setFormErrors((prev) => {
         const newErrors = { ...prev };
         delete newErrors[name];
         return newErrors;
       });
+    }
+
+    if (name === "title" || name === "description") {
+      const currentTitle = name === "title" ? sanitizeInput(value) : reportForm.title;
+      const currentDescription = name === "description" ? sanitizeInput(value) : reportForm.description;
+      validateMLInput(currentTitle, currentDescription);
     }
   };
 
@@ -393,7 +409,102 @@ const filteredReports = reportsList.filter(report => {
     [formErrors, reportForm.location.address] 
   );
 
-    const handleAddReportSubmit = async (event) => {
+  const validateMLInput = useCallback((title, description) => {
+    if (validationTimeout) {
+      clearTimeout(validationTimeout);
+    }
+
+    if (!title && !description) {
+      setMLValidation(null);
+      setReportForm(prev => ({ ...prev, category: null, predictResult: null }));
+      return;
+    }
+
+    const timeout = setTimeout(async () => {
+      try {
+        const result = await predictedCategory(title, description); 
+
+        if (result.status === "success" && result.predictResult) {
+          const mlResult = result.predictResult;
+          const predictedCategoryName = mlResult.category;
+          const predictedScore = mlResult.score || 0;
+          let suggestions = [];
+
+          if (predictedCategoryName === "kebakaran") {
+            suggestions.push("Laporan ini terindikasi *kebakaran* oleh AI. Harap gunakan 'Laporan Darurat' untuk kasus kebakaran.");
+          } else if (!predictedCategoryName.includes("penyelamatan") && !predictedCategoryName.includes("lingkungan")) {
+            suggestions.push(`AI memprediksi: "${predictedCategoryName.replace(/_/g, ' ')}" (Skor: ${(predictedScore * 100).toFixed(2)}%). Pastikan deskripsi Anda sudah jelas untuk laporan rescue.`);
+          }
+
+          setMLValidation({
+            isRescue: predictedCategoryName !== "kebakaran",
+            confidence: predictedScore,
+            suggestions: suggestions,
+            message: `Prediksi kategori: ${predictedCategoryName ? predictedCategoryName.replace(/_/g, ' ') : 'Tidak diketahui'} (Skor: ${(predictedScore * 100).toFixed(2)}%)`,
+          });
+
+          setReportForm((prev) => ({
+            ...prev,
+            category: predictedCategoryName,
+            predictResult: mlResult,
+          }));
+
+          if (predictedCategoryName === "kebakaran") {
+            setReportForm(prev => ({
+              ...prev,
+              redirectToQuickReport: true
+            }));
+          }
+        } else {
+          setMLValidation({
+            isRescue: false,
+            confidence: 0,
+            suggestions: [],
+            message: result.message || "Gagal memvalidasi kategori laporan dari backend. Silakan coba lagi.",
+          });
+          setReportForm((prev) => ({
+            ...prev,
+            category: null,
+            predictResult: { status: "error", message: result.message || "Prediction failed from backend" },
+          }));
+        }
+      } catch (error) {
+        console.error("Error dalam prediksi kategori dari backend:", error);
+        setMLValidation({
+          isRescue: false,
+          confidence: 0,
+          suggestions: [],
+          message: "Gagal memvalidasi kategori laporan. Terjadi kesalahan saat menghubungi backend.",
+        });
+        setReportForm((prev) => ({
+          ...prev,
+          category: null,
+          predictResult: { status: "error", message: "System error calling backend for prediction" },
+        }));
+      }
+    }, 1000);
+
+    setValidationTimeout(timeout);
+  }, [validationTimeout]);
+
+  useEffect(() => {
+    setReportForm(prev => {
+      if (prev.reportType === "biasa" && prev.category) {
+        if (prev.rescueType !== prev.category) {
+          console.log(`Updating rescueType to: ${prev.category} (from category)`);
+          return { ...prev, rescueType: prev.category }; 
+        }
+      } else if (prev.reportType === "darurat") {
+        if (prev.rescueType !== "") {
+          console.log("Resetting rescueType for 'darurat' reportType");
+          return { ...prev, rescueType: "" };
+        }
+      }
+      return prev;
+    });
+  }, [reportForm.category, reportForm.reportType]);
+
+  const handleAddReportSubmit = async (event) => {
     event.preventDefault(); 
     if (!selectedReportType) return;
 
@@ -433,12 +544,17 @@ const filteredReports = reportsList.filter(report => {
         if (reportForm.video) formData.append("video", reportForm.video);
 
         if (selectedReportType === 'darurat') {
-        formData.append("fireType", reportForm.fireType);
-        formData.append("hasCasualties", reportForm.hasCasualties.toString());
-        formData.append("urgencyLevel", reportForm.urgencyLevel);
-        } else if (selectedReportType === 'biasa') {
-        formData.append("rescueType", reportForm.rescueType);
-        formData.append("additionalInfo", reportForm.additionalInfo || "");
+          formData.append("fireType", reportForm.fireType);
+          formData.append("hasCasualties", reportForm.hasCasualties.toString());
+          formData.append("urgencyLevel", reportForm.urgencyLevel);
+          formData.append("category", "Kebakaran"); 
+        } else if (selectedReportType  === 'biasa') {
+          formData.append("category", reportForm.category || ""); 
+          formData.append("rescueType", reportForm.category || ""); 
+          if (reportForm.predictResult) {
+            formData.append("predictResult", JSON.stringify(reportForm.predictResult)); 
+          }
+          formData.append("additionalInfo", reportForm.additionalInfo || "");
         }
 
         const token = localStorage.getItem("token");
@@ -450,17 +566,17 @@ const filteredReports = reportsList.filter(report => {
         alert('Laporan berhasil ditambahkan!');
         setShowAddReportForm(false);
 
-        setReportForm({
-            title: '',
-            description: '',
-            location: {
+       setReportForm({
+          title: '',
+          description: '',
+          location: {
             address: '',
             latitude: '',
             longitude: '',
-            },
-            image: null,
-            video: null,
-            reporterInfo: {
+          },
+          image: null,
+          video: null,
+          reporterInfo: {
             name: '',
             phone: '',
             address: '',
@@ -468,17 +584,21 @@ const filteredReports = reportsList.filter(report => {
             rw: '',
             kelurahan: '',
             kecamatan: '',
-            },
-            fireType: '',
-            hasCasualties: false,
-            urgencyLevel: 'rendah',
-            rescueType: '',
-            additionalInfo: '',
+          },
+          fireType: '',
+          hasCasualties: false,
+          urgencyLevel: 'rendah',
+          predictResult: null,
+          reportType: "biasa",
+          category: null,
+          additionalInfo: '',
+          rescueType: '',
         });
 
         setSelectedReportType('');
         setPreviewImage(null);
         setFormErrors({});
+        setMLValidation(null);
         if (fileInputRef.current) fileInputRef.current.value = "";
         if (videoInputRef.current) videoInputRef.current.value = "";
 
@@ -806,6 +926,25 @@ const filteredReports = reportsList.filter(report => {
                 <X className="w-5 h-5" />
               </button>
             </div>
+            {mlValidation?.message && (
+              <div className={`p-4 rounded-lg mb-4 ${
+                mlValidation.isFire
+                  ? 'bg-yellow-50 border border-yellow-200'
+                  : 'bg-green-50 border border-green-200'
+              }`}>
+                <div className="flex items-start">
+                  {mlValidation.isFire ? (
+                    <AlertTriangle className="w-5 h-5 text-yellow-600 mr-2 mt-0.5 flex-shrink-0" />
+                  ) : (
+                    <CheckCircle className="w-5 h-5 text-green-600 mr-2 mt-0.5 flex-shrink-0" />
+                  )}
+                  <p className="font-medium text-sm lg:text-base text-gray-800">
+                    {mlValidation.message}
+                  </p>
+                </div>
+              </div>
+            )}
+
             <form onSubmit={handleAddReportSubmit} className="space-y-4">
               {/* Pemilihan Jenis Laporan */}
               <div className="mb-4">
@@ -823,7 +962,6 @@ const filteredReports = reportsList.filter(report => {
                       fireType: '',
                       hasCasualties: false,
                       urgencyLevel: 'rendah',
-                      rescueType: '',
                       additionalInfo: '',
                     }));
                     if (formErrors.reportType) {
@@ -1066,25 +1204,6 @@ const filteredReports = reportsList.filter(report => {
                         <CheckCircle className="w-4 h-4 mr-2" />
                         Detail Penyelamatan
                       </h4>
-                      <div className="mb-3">
-                        <label htmlFor="rescueType" className="block text-sm font-medium text-gray-700 mb-1">Jenis Penyelamatan *</label>
-                        <select
-                          id="rescueType"
-                          name="rescueType"
-                          value={reportForm.rescueType}
-                          onChange={handleAddReportChange}
-                          className={`w-full px-3 py-2 border rounded-lg focus:outline-none focus:ring-2 ${
-                            formErrors.rescueType ? 'border-red-500 focus:ring-red-500' : 'border-gray-300 focus:ring-red-500'
-                          }`}
-                          required
-                        >
-                          <option value="">Pilih Jenis</option>
-                          {rescueTypes.map(type => (
-                            <option key={type.value} value={type.value}>{type.label}</option>
-                          ))}
-                        </select>
-                        {formErrors.rescueType && <p className="mt-1 text-sm text-red-500">{formErrors.rescueType}</p>}
-                      </div>
                       <div>
                         <label htmlFor="additionalInfo" className="block text-sm font-medium text-gray-700 mb-1">Informasi Tambahan</label>
                         <textarea
